@@ -2,14 +2,27 @@
 
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth-context';
-import { LogOut, Menu, Plus, Settings, User } from 'lucide-react';
+import { tr } from 'date-fns/locale';
+import {
+  LogOut,
+  Menu,
+  Plus,
+  Settings,
+  User,
+  ShieldCheck,
+  Workflow,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 export function Sidebar() {
-  const [isOpen, setIsOpen] = useState(false);
   const { user, logout } = useAuth();
+
+  // Kiểm tra role an toàn từ memory
+  const isAdmin = user?.role === 'admin';
+
+  const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
 
   const handleLogout = () => {
@@ -106,7 +119,27 @@ export function Sidebar() {
             </div>
           )}
 
-          <Link href="/profile" onClick={() => setIsOpen(false)}>
+          {isAdmin && (
+            <Link href="/data-pipeline" onClick={() => setIsOpen(false)}>
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <Workflow size={18} className="mr-2" />
+                Data Pipeline
+              </Button>
+            </Link>
+
+            // <Link
+            //   href="/data-pipeline"
+            //   className="flex items-center gap-2 p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+            // >
+            //   <Workflow size={18} className="mr-2" />
+            //   Data Pipeline
+            // </Link>
+          )}
+
+          {/* <Link href="/profile" onClick={() => setIsOpen(false)}>
             <Button
               variant="ghost"
               className="w-full justify-start text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -114,9 +147,9 @@ export function Sidebar() {
               <User size={18} className="mr-2" />
               Profile
             </Button>
-          </Link>
+          </Link> */}
 
-          <Link href="/settings" onClick={() => setIsOpen(false)}>
+          {/* <Link href="/settings" onClick={() => setIsOpen(false)}>
             <Button
               variant="ghost"
               className="w-full justify-start text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -124,7 +157,7 @@ export function Sidebar() {
               <Settings size={18} className="mr-2" />
               Settings
             </Button>
-          </Link>
+          </Link> */}
 
           <Button
             onClick={handleLogout}
