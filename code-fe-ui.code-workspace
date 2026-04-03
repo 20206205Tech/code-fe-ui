@@ -1,0 +1,29 @@
+{
+  "folders": [
+    {
+      "name": "code-fe-ui",
+      "path": ".",
+    },
+    {
+      "name": "app",
+      "path": "app",
+    },
+    {
+      "name": "config",
+      "path": "config",
+    },
+    {
+      "name": "lib",
+      "path": "lib",
+    },
+    {
+      "name": "services",
+      "path": "services",
+    },
+    {
+      "name": "components",
+      "path": "components",
+    },
+  ],
+  "settings": {},
+}
