@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Sidebar } from '@/components/sidebar';
 import { UserMenuHeader } from '@/components/user-menu-header';
 import {
@@ -56,6 +56,9 @@ export default function AdminPage() {
   const [workflowSummary, setWorkflowSummary] = useState<WorkflowSummary[]>([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
 
+  // State cho bộ lọc năm của biểu đồ LineChart
+  const [yearRange, setYearRange] = useState<number | 'all'>(20);
+
   // Load Data
   useEffect(() => {
     async function loadDashboardData() {
@@ -98,6 +101,23 @@ export default function AdminPage() {
       }
     }
   }, [isLoading, isAuthenticated, isAdmin, router]);
+
+  // Logic lọc dữ liệu năm linh hoạt bằng useMemo để tối ưu hiệu suất
+  const filteredIssueDates = useMemo(() => {
+    if (!issueDates.length) return [];
+
+    const currentYear = new Date().getFullYear(); // Lấy năm hiện tại tự động
+
+    return issueDates.filter((d) => {
+      // Loại bỏ các năm trong tương lai (nếu có dữ liệu rác)
+      if (d.year > currentYear) return false;
+
+      if (yearRange === 'all') return true;
+
+      // Lấy trong khoảng yearRange tính từ năm hiện tại
+      return d.year >= currentYear - yearRange;
+    });
+  }, [issueDates, yearRange]);
 
   if (isLoading || !isAdmin || isDataLoading) {
     return (
@@ -153,30 +173,66 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Biểu đồ số lượng văn bản theo năm ban hành (lấy 20 năm gần nhất) */}
+              {/* Biểu đồ số lượng văn bản theo năm ban hành có Nút Lọc */}
               <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                <h2 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-200">
-                  Phân bố theo năm ban hành (20 năm)
-                </h2>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+                  <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
+                    Phân bố theo năm ban hành{' '}
+                    {yearRange === 'all' ? '(Tất cả)' : `(${yearRange} năm)`}
+                  </h2>
+
+                  {/* Filter Buttons */}
+                  {/* <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                    {[5, 10, 20, 'all'].map((range) => (
+                      <button
+                        key={range}
+                        onClick={() => setYearRange(range as number | 'all')}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${
+                          yearRange === range
+                            ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-white shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                        }`}
+                      >
+                        {range === 'all' ? 'Tất cả' : `${range} năm`}
+                      </button>
+                    ))}
+                  </div> */}
+
+                  {/* Thay thế phần Filter Buttons cũ bằng Dropdown này */}
+                  <div className="flex items-center">
+                    <select
+                      value={yearRange}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setYearRange(val === 'all' ? 'all' : Number(val));
+                      }}
+                      className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block px-3 py-2 outline-none cursor-pointer"
+                    >
+                      <option value={5}>5 năm</option>
+                      <option value={10}>10 năm</option>
+                      <option value={20}>20 năm</option>
+                      <option value="all">Tất cả thời gian</option>
+                    </select>
+                  </div>
+                </div>
+
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
-                      data={issueDates.filter(
-                        (d) => d.year <= 2026 && d.year >= 2006
-                      )}
-                    >
+                    <LineChart data={filteredIssueDates}>
                       <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
                       <XAxis dataKey="year" />
                       <YAxis />
                       <Tooltip
                         formatter={(value: number) => value.toLocaleString()}
+                        labelFormatter={(label) => `Năm: ${label}`}
                       />
                       <Line
                         type="monotone"
                         dataKey="count"
                         stroke="#3b82f6"
                         strokeWidth={2}
-                        dot={false}
+                        dot={{ r: 3, fill: '#3b82f6' }}
+                        activeDot={{ r: 6 }}
                       />
                     </LineChart>
                   </ResponsiveContainer>
