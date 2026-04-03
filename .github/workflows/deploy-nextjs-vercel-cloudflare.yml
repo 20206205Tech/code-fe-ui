@@ -36,6 +36,40 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: npm ci
 
+   
+  # unit-test:
+  #   runs-on: ubuntu-latest
+  #   needs: install-deps
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: '20'
+  #         cache: 'npm'
+  #     - name: Download cached dependencies
+  #       uses: actions/cache@v3
+  #       with:
+  #         path: node_modules
+  #         key: ${{ needs.install-deps.outputs.deps-cache-key }}
+
+  #     - name: Fetch secrets from Doppler
+  #       id: doppler
+  #       uses: dopplerhq/secrets-fetch-action@v1.2.0
+  #       with:
+  #         doppler-token: ${{ secrets.DOPPLER_TOKEN }}
+  #         doppler-project: ${{ secrets.DOPPLER_PROJECT }}
+  #         doppler-config: ${{ secrets.DOPPLER_CONFIG }}
+
+  #     - name: Test Coverage
+  #       run: npm run test -- --coverage # Cập nhật script test tương ứng trong package.json
+      
+  #     - name: Upload to Codecov
+  #       uses: codecov/codecov-action@v5
+  #       with:
+  #         token: ${{ steps.doppler.outputs.CODECOV_TOKEN }}
+  #         directory: ./coverage
+  #         fail_ci_if_error: false
+
   build:
     runs-on: ubuntu-latest
     needs: install-deps
@@ -45,13 +79,20 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-
+      
       - name: Download cached dependencies
         uses: actions/cache@v3
-        id: cache
         with:
           path: node_modules
           key: ${{ needs.install-deps.outputs.deps-cache-key }}
+
+      - name: Restore Next.js build cache
+        uses: actions/cache@v3
+        with:
+          path: .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-
 
       - name: Build Project
         run: npm run build --if-present
@@ -66,7 +107,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-
+      
       - name: Download cached dependencies
         uses: actions/cache@v3
         with:
@@ -80,56 +121,73 @@ jobs:
           doppler-token: ${{ secrets.DOPPLER_TOKEN }}
           doppler-project: ${{ secrets.DOPPLER_PROJECT }}
           doppler-config: ${{ secrets.DOPPLER_CONFIG }}
+          inject-env-vars: true
+
+      - name: Fetch secrets from Doppler API (Curl)
+        id: doppler_json_gen
+        run: |
+          RESPONSE=$(curl -s --request GET \
+            --url "https://api.doppler.com/v3/configs/config/secrets?project=${{ secrets.DOPPLER_PROJECT }}&config=${{ secrets.DOPPLER_CONFIG }}" \
+            --header "accept: application/json" \
+            --header "authorization: Bearer ${{ secrets.DOPPLER_TOKEN }}")
+          
+          FLATTENED_JSON=$(echo "$RESPONSE" | jq -r '.secrets | map_values(.computed) | tojson')
+          echo "json_content=$FLATTENED_JSON" >> $GITHUB_OUTPUT
+        shell: bash
 
       - name: Generate Metadata
         id: meta
         run: |
+          # Lấy tên repo làm tên project Vercel
           REPO_NAME_LOW=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g')
           echo "name=$REPO_NAME_LOW" >> $GITHUB_OUTPUT
-
-
-          echo "full_domain=${{ secrets.DOMAIN }}" >> $GITHUB_OUTPUT
+          # Sử dụng domain chính từ Doppler
+          echo "full_domain=${{ steps.doppler.outputs.DOMAIN }}" >> $GITHUB_OUTPUT
 
       - name: Initialize Vercel Project
         run: |
           PROJECT_NAME="${{ steps.meta.outputs.name }}"
-          npx vercel project add "$PROJECT_NAME" --token=${{ secrets.VERCEL_TOKEN }} --yes || true
-          npx vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+          npx vercel project add "$PROJECT_NAME" --token=${{ steps.doppler.outputs.VERCEL_TOKEN }} --yes || true
+          npx vercel pull --yes --environment=production --token=${{ steps.doppler.outputs.VERCEL_TOKEN }}
 
       - name: Sync Doppler Secrets to Vercel
         env:
-          DOPPLER_JSON: ${{ steps.doppler.outputs.json }}
+          DOPPLER_JSON: ${{ steps.doppler_json_gen.outputs.json_content }}
         run: |
-          V_CMD="npx vercel --token=${{ secrets.VERCEL_TOKEN }}"
-
-          # Add Main Domain
+          V_CMD="npx vercel --token=${{ steps.doppler.outputs.VERCEL_TOKEN }}"
+          
+          # Add Root Domain vào Vercel project
           $V_CMD domains add ${{ steps.meta.outputs.full_domain }} --force || true
-
-          # Đẩy từng secret từ Doppler vào Vercel Production
+          
+          # Đẩy từng biến môi trường sang Vercel (Production)
           echo "$DOPPLER_JSON" | jq -r 'to_entries[] | .key + " " + (.value | tostring)' | while read -r key value; do
-            printf "%s" "$value" | $V_CMD env add "$key" production --force || true
+            if [[ "$key" != "VERCEL_TOKEN" && "$key" != "DOPPLER_TOKEN" && "$key" != "CLOUDFLARE_*" ]]; then
+              printf "%s" "$value" | $V_CMD env add "$key" production --force || true
+            fi
           done
 
       - name: Deploy to Vercel
         id: vercel_deploy
         run: |
-          PARAM="--token=${{ secrets.VERCEL_TOKEN }} --yes --prod"
+          # Build và Deploy trực tiếp lên production
+          PARAM="--token=${{ steps.doppler.outputs.VERCEL_TOKEN }} --yes --prod"
           DEPLOY_URL=$(npx vercel deploy $PARAM)
           echo "url=$DEPLOY_URL" >> $GITHUB_OUTPUT
 
       - name: Configure Cloudflare DNS (Root Domain)
         env:
-          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+          CF_TOKEN: ${{ steps.doppler.outputs.CLOUDFLARE_API_TOKEN }}
+          ZONE_ID: ${{ steps.doppler.outputs.CLOUDFLARE_ZONE_ID }}
         run: |
           DOMAIN_NAME="${{ steps.meta.outputs.full_domain }}"
-
-          # Tìm Record ID cho domain chính (thường là bản ghi A hoặc CNAME @)
+          
+          # Tìm Record ID hiện tại của Root Domain (@)
           RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?name=$DOMAIN_NAME" \
             -H "Authorization: Bearer $CF_TOKEN" | jq -r '.result[0].id // empty')
 
-          # Cấu hình CNAME trỏ về Vercel (sử dụng @ cho domain chính)
-          DNS_PAYLOAD=$(jq -n --arg name "@" --arg content "${{ secrets.VERCEL_CNAME }}" \
+          # Đối với Root Domain, dùng CNAME trỏ về cname.vercel-dns.com 
+          # (Cloudflare hỗ trợ CNAME Flattening cho Root)
+          DNS_PAYLOAD=$(jq -n --arg name "@" --arg content "cname.vercel-dns.com" \
             '{type:"CNAME", name:$name, content:$content, ttl:1, proxied:true}')
 
           if [ -z "$RECORD_ID" ]; then
