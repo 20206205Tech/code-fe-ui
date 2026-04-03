@@ -17,6 +17,7 @@ import { authService } from '../services/auth.service';
 import { cookieHelper } from './cookie-helper';
 
 import { profileService } from '../services/profile.service';
+import { decodeJwtPayload, getUserRoleFromToken } from './token-helper';
 
 export interface AuthToken {
   access_token: string;
@@ -29,6 +30,7 @@ export interface User {
   email: string;
   name: string;
   avatar?: string;
+  role?: string;
 }
 
 interface AuthContextType {
@@ -55,19 +57,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem(USER_STORAGE_KEY);
+    const storedToken = cookieHelper.get(TOKEN_STORAGE_KEY);
+    let currentRole = 'user';
 
+    if (storedToken?.access_token) {
+      currentRole = getUserRoleFromToken(storedToken.access_token);
+      setTokens(storedToken);
+    }
+
+    const storedUser = localStorage.getItem(USER_STORAGE_KEY);
     if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        setUser({ ...parsedUser, role: currentRole });
       } catch (error) {
         console.error('Failed to parse user:', error);
       }
-    }
-
-    const storedToken = cookieHelper.get(TOKEN_STORAGE_KEY);
-    if (storedToken) {
-      setTokens(storedToken);
     }
 
     setIsLoading(false);
@@ -94,6 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(refreshInterval);
   }, [tokens]);
 
+  // 3. Cập nhật hàm login
   const login = useCallback(
     async (
       access_token: string,
@@ -101,11 +107,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       expires_in: number = 3600
     ) => {
       try {
-        // 1. Giải mã token để lấy ID (sub)
-        const payload = JSON.parse(window.atob(access_token.split('.')[1]));
-        const userId = payload.sub;
+        const payload = decodeJwtPayload(access_token);
+        if (!payload) throw new Error('Token không hợp lệ');
 
-        // 2. Lấy profile thực từ Database (Thay vì dùng user_metadata từ Google)
+        const userId = payload.sub;
+        const userRole = payload.app_metadata?.role || 'user';
+
         const dbProfile = await profileService.getProfile(userId, access_token);
 
         const authUser: User = {
@@ -114,11 +121,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           name:
             dbProfile?.full_name || payload.user_metadata?.full_name || 'User',
           avatar: dbProfile?.avatar_url || payload.user_metadata?.avatar_url,
+          role: userRole,
         };
 
-        // 3. Lưu thông tin
         setTokens({ access_token, refresh_token, expires_in });
         setUser(authUser);
+
         localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(authUser));
         cookieHelper.set(
           TOKEN_STORAGE_KEY,
@@ -126,7 +134,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           { maxAge: expires_in }
         );
       } catch (error) {
-        console.error('Login error:', error);
         throw error;
       }
     },
