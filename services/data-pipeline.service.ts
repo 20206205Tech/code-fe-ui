@@ -1,5 +1,11 @@
 import { BaseApiUrl } from '@/config/env.config';
 
+export interface BaseResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+}
+
 export interface Workflow {
   id: number;
   code: string;
@@ -50,7 +56,16 @@ async function fetchWithAuth<T>(endpoint: string, token: string): Promise<T> {
     throw new Error(`API call failed: ${response.statusText}`);
   }
 
-  return response.json();
+  // Parse response theo kiểu BaseResponse<T>
+  const jsonResponse: BaseResponse<T> = await response.json();
+
+  // Kiểm tra cờ success từ backend (tuỳ chọn nhưng rất nên làm)
+  if (!jsonResponse.success) {
+    throw new Error(jsonResponse.message || 'Có lỗi xảy ra từ server');
+  }
+
+  // Trả về đúng trường data mà component đang mong đợi
+  return jsonResponse.data;
 }
 
 export const DataPipelineService = {
