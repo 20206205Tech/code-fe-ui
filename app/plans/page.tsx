@@ -6,11 +6,18 @@ import { Sidebar } from '@/components/sidebar';
 import { UserMenuHeader } from '@/components/user-menu-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CreditCard, History } from 'lucide-react';
+import { Suspense } from 'react';
 
 export default function PlansPage() {
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-950">
-      <Sidebar />
+      <Suspense
+        fallback={
+          <div className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800" />
+        }
+      >
+        <Sidebar />
+      </Suspense>
       <div className="flex-1 flex flex-col md:ml-0 overflow-hidden relative">
         <UserMenuHeader />
 

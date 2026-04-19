@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth-context';
 import { ArrowLeft, Upload } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, Suspense } from 'react';
 
 export default function ProfilePage() {
   const { user, updateUser } = useAuth();
@@ -43,7 +43,13 @@ export default function ProfilePage() {
 
   return (
     <div className="flex h-screen bg-white dark:bg-slate-950">
-      <Sidebar />
+      <Suspense
+        fallback={
+          <div className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800" />
+        }
+      >
+        <Sidebar />
+      </Suspense>
       <div className="flex-1 flex flex-col">
         <UserMenuHeader />
         <main className="flex-1 flex items-center justify-center p-4">

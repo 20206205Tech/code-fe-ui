@@ -10,7 +10,7 @@ import {
   chatService,
   ChatMessage as ApiMessage,
 } from '@/services/chat.service';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, Suspense } from 'react';
 import { MessageSquare, Loader2, Info, Share2, Bookmark } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ShareModal } from '@/components/share-modal';
@@ -37,7 +37,7 @@ const EXAMPLE_QUESTIONS = [
   'Quy định về xin giấy phép lao động cho người nước ngoài?',
 ];
 
-export default function ChatPage() {
+function ChatContent() {
   const { user } = useAuth();
   const { settings } = useSettings();
   const searchParams = useSearchParams();
@@ -323,5 +323,19 @@ export default function ChatPage() {
         chatId={activeChatId}
       />
     </div>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen items-center justify-center bg-white dark:bg-slate-950">
+          <Loader2 className="animate-spin text-blue-600" />
+        </div>
+      }
+    >
+      <ChatContent />
+    </Suspense>
   );
 }

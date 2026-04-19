@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { ArrowLeft, Moon, Sun, MessageSquare, Mic } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSettings } from '../../lib/settings-context';
 
 export default function SettingsPage() {
@@ -40,7 +40,13 @@ export default function SettingsPage() {
 
   return (
     <div className="flex h-screen bg-white dark:bg-slate-950 transition-colors duration-300">
-      <Sidebar />
+      <Suspense
+        fallback={
+          <div className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800" />
+        }
+      >
+        <Sidebar />
+      </Suspense>
 
       <div className="flex-1 flex flex-col md:ml-0">
         <UserMenuHeader />
