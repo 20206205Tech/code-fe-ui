@@ -11,6 +11,8 @@ import {
   User,
   ShieldCheck,
   Workflow,
+  CreditCard,
+  Sparkles,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -95,6 +97,18 @@ export function Sidebar() {
         {/* User Menu */}
         <div className="p-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
           {user && (
+            <Link href="/plans" onClick={() => setIsOpen(false)}>
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <Sparkles size={18} className="mr-2 text-yellow-500" />
+                Gói cước
+              </Button>
+            </Link>
+          )}
+
+          {/* {user && (
             <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800 mb-3">
               {user.avatar ? (
                 <img
@@ -117,26 +131,32 @@ export function Sidebar() {
                 </p>
               </div>
             </div>
-          )}
+          )} */}
 
           {isAdmin && (
-            <Link href="/data-pipeline" onClick={() => setIsOpen(false)}>
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+            <>
+              <Link
+                href="/admin/data-pipeline"
+                onClick={() => setIsOpen(false)}
               >
-                <Workflow size={18} className="mr-2" />
-                Data Pipeline
-              </Button>
-            </Link>
-
-            // <Link
-            //   href="/data-pipeline"
-            //   className="flex items-center gap-2 p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-            // >
-            //   <Workflow size={18} className="mr-2" />
-            //   Data Pipeline
-            // </Link>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  <Workflow size={18} className="mr-2" />
+                  Data Pipeline
+                </Button>
+              </Link>
+              <Link href="/admin/plans" onClick={() => setIsOpen(false)}>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  <CreditCard size={18} className="mr-2" />
+                  Quản lý gói
+                </Button>
+              </Link>
+            </>
           )}
 
           {/* <Link href="/profile" onClick={() => setIsOpen(false)}>

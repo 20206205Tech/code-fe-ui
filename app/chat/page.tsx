@@ -5,15 +5,24 @@ import { ChatMessage } from '@/components/chat-message';
 import { Sidebar } from '@/components/sidebar';
 import { UserMenuHeader } from '@/components/user-menu-header';
 import { useAuth } from '@/lib/auth-context';
+import { useSettings } from '@/lib/settings-context';
 import { useEffect, useRef, useState } from 'react';
+import { MessageSquare } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
 }
 
+const EXAMPLE_QUESTIONS = [
+  'Tóm tắt nội dung của 009/SLT.',
+  'Về quê họ hàng chơi có phải đăng ký tạm trú không?',
+  'Quy định về xin giấy phép lao động cho người nước ngoài?',
+];
+
 export default function ChatPage() {
   const { user } = useAuth();
+  const { settings } = useSettings();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -27,6 +36,8 @@ export default function ChatPage() {
   }, [messages]);
 
   const handleSendMessage = async (message: string) => {
+    if (!message.trim()) return;
+
     // Add user message
     const userMessage: Message = { role: 'user', content: message };
     setMessages((prev) => [...prev, userMessage]);
@@ -65,12 +76,31 @@ export default function ChatPage() {
               <div className="h-full flex flex-col items-center justify-center py-12 px-4 text-center">
                 <div className="text-5xl mb-4">👋</div>
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-                  Welcome to Chat
+                  Chào mừng bạn đến với Chat
                 </h2>
-                <p className="text-slate-600 dark:text-slate-400 max-w-md">
-                  Start a conversation by sending a message. I&apos;m here to
-                  help!
+                <p className="text-slate-600 dark:text-slate-400 max-w-md mb-8">
+                  Bắt đầu cuộc trò chuyện bằng cách gửi một tin nhắn. Tôi luôn
+                  sẵn sàng giúp đỡ!
                 </p>
+
+                {settings.showExampleQuestions && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-3xl mt-4">
+                    {EXAMPLE_QUESTIONS.map((question, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => handleSendMessage(question)}
+                        className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all text-left group"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-3 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                          <MessageSquare size={16} />
+                        </div>
+                        <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                          {question}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="p-4 md:p-6">
@@ -113,6 +143,10 @@ export default function ChatPage() {
         <div className="fixed md:absolute bottom-0 left-0 right-0 md:left-64 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-4">
           <div className="max-w-4xl mx-auto">
             <ChatInput onSend={handleSendMessage} isLoading={isLoading} />
+            <p className="text-xs text-center text-slate-500 dark:text-slate-400 mt-2">
+              Trợ lý AI hỗ trợ thông tin chỉ mang tính chất tham khảo và có thể
+              mắc sai sót.
+            </p>
           </div>
         </div>
       </div>

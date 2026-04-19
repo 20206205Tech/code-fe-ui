@@ -12,8 +12,10 @@ import {
   TOKEN_REFRESH_THRESHOLD,
   TOKEN_STORAGE_KEY,
   USER_STORAGE_KEY,
+  USER_SETTINGS_STORAGE_KEY,
 } from '../config/app.config';
 import { authService } from '../services/auth.service';
+import { useSettings } from './settings-context';
 import { cookieHelper } from './cookie-helper';
 
 import { profileService } from '../services/profile.service';
@@ -55,6 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [tokens, setTokens] = useState<AuthToken | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { syncSettings } = useSettings();
 
   useEffect(() => {
     const storedToken = cookieHelper.get(TOKEN_STORAGE_KEY);
@@ -133,6 +136,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           { access_token, refresh_token, expires_in },
           { maxAge: expires_in }
         );
+
+        // Sync settings after login
+        await syncSettings(access_token);
       } catch (error) {
         throw error;
       }
@@ -145,6 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
 
     localStorage.removeItem(USER_STORAGE_KEY);
+    localStorage.removeItem(USER_SETTINGS_STORAGE_KEY);
 
     cookieHelper.remove(TOKEN_STORAGE_KEY);
   }, []);

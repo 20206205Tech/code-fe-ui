@@ -44,7 +44,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
       try {
-        const raw = localStorage.getItem('user-settings');
+        const raw = localStorage.getItem('user_settings');
         const settings = raw ? JSON.parse(raw) : { theme: 'system' };
         const theme = settings.theme || 'system';
         
