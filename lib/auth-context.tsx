@@ -13,10 +13,12 @@ import {
   TOKEN_STORAGE_KEY,
   USER_STORAGE_KEY,
   USER_SETTINGS_STORAGE_KEY,
+  USER_SUBSCRIPTION_KEY,
 } from '../config/app.config';
 import { authService } from '../services/auth.service';
 import { useSettings } from './settings-context';
 import { cookieHelper } from './cookie-helper';
+import { paymentService, Subscription } from '../services/payment.service';
 
 import { profileService } from '../services/profile.service';
 import { decodeJwtPayload, getUserRoleFromToken } from './token-helper';
@@ -38,6 +40,7 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   tokens: AuthToken | null;
+  subscription: Subscription | null;
   isLoading: boolean;
   isAuthenticated: boolean;
 
@@ -56,6 +59,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [tokens, setTokens] = useState<AuthToken | null>(null);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { syncSettings } = useSettings();
 
@@ -78,8 +82,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
+    const storedSub = localStorage.getItem(USER_SUBSCRIPTION_KEY);
+    if (storedSub) {
+      try {
+        setSubscription(JSON.parse(storedSub));
+      } catch (error) {
+        console.error('Failed to parse subscription:', error);
+      }
+    }
+
+    // Always fetch latest subscription if authenticated
+    if (storedToken?.access_token) {
+      syncSubscription();
+    }
+
     setIsLoading(false);
   }, []);
+
+  const syncSubscription = async () => {
+    try {
+      const sub = await paymentService.getMySubscription();
+      setSubscription(sub);
+      if (sub) {
+        localStorage.setItem(USER_SUBSCRIPTION_KEY, JSON.stringify(sub));
+      } else {
+        localStorage.removeItem(USER_SUBSCRIPTION_KEY);
+      }
+    } catch (error) {
+      console.error('Failed to sync subscription:', error);
+    }
+  };
 
   // Auto-refresh token before expiry (60 seconds before)
   useEffect(() => {
@@ -139,6 +171,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Sync settings after login
         await syncSettings(access_token);
+        // Sync subscription after login
+        await syncSubscription();
       } catch (error) {
         throw error;
       }
@@ -152,8 +186,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     localStorage.removeItem(USER_STORAGE_KEY);
     localStorage.removeItem(USER_SETTINGS_STORAGE_KEY);
+    localStorage.removeItem(USER_SUBSCRIPTION_KEY);
 
     cookieHelper.remove(TOKEN_STORAGE_KEY);
+    setSubscription(null);
   }, []);
 
   const refreshToken = async () => {
@@ -226,6 +262,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value: AuthContextType = {
     user,
     tokens,
+    subscription,
     isLoading,
     isAuthenticated: !!tokens && !!user,
     login,

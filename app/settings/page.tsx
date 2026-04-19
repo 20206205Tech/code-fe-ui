@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { UserMenuHeader } from '@/components/user-menu-header';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Moon, Sun, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Moon, Sun, MessageSquare, Mic } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -29,6 +29,10 @@ export default function SettingsPage() {
 
   const handleToggleExampleQuestions = (checked: boolean) => {
     updateSettings({ showExampleQuestions: checked });
+  };
+
+  const handleToggleAutoSendVoice = (checked: boolean) => {
+    updateSettings({ autoSendVoice: checked });
   };
 
   const currentTheme = theme === 'system' ? systemTheme : theme;
@@ -108,7 +112,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Cài đặt câu hỏi ví dụ */}
-            <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-6 transition-colors">
+            <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-6 mb-8 transition-colors">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="p-3 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-full">
@@ -127,6 +131,31 @@ export default function SettingsPage() {
                   id="example-questions-toggle"
                   checked={settings.showExampleQuestions}
                   onCheckedChange={handleToggleExampleQuestions}
+                />
+              </div>
+            </div>
+
+            {/* Cài đặt giọng nói */}
+            <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-6 transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 rounded-full">
+                    <Mic size={24} />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                      Tự động gửi nội dung
+                    </h2>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      Tự động gửi tin nhắn ngay sau khi chuyển từ giọng nói sang
+                      văn bản
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  id="auto-send-voice-toggle"
+                  checked={settings.autoSendVoice}
+                  onCheckedChange={handleToggleAutoSendVoice}
                 />
               </div>
             </div>

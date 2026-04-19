@@ -41,9 +41,6 @@ export function ChatMessage({
 
       {/* Message */}
       <div className={`flex-1 max-w-2xl ${isUser ? 'text-right' : ''}`}>
-        <p className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
-          {isUser ? userName : 'Assistant'}
-        </p>
         <div
           className={`rounded-lg px-4 py-2 ${
             isUser

@@ -11,11 +11,13 @@ import { cookieHelper } from './cookie-helper';
 interface Settings {
   theme: string;
   showExampleQuestions: boolean;
+  autoSendVoice: boolean;
 }
 
 const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   showExampleQuestions: true,
+  autoSendVoice: false,
 };
 
 interface SettingsContextType {
@@ -44,6 +46,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             parsed.showExampleQuestions !== undefined
               ? parsed.showExampleQuestions
               : prev.showExampleQuestions,
+          autoSendVoice:
+            parsed.autoSendVoice !== undefined
+              ? parsed.autoSendVoice
+              : prev.autoSendVoice,
         }));
       } catch (e) {
         console.error('Lỗi parse settings:', e);
@@ -61,6 +67,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           if (item.key === 'theme') newSettings.theme = item.value;
           if (item.key === 'show_example_questions')
             newSettings.showExampleQuestions = item.value === 'true';
+          if (item.key === 'auto_send_voice')
+            newSettings.autoSendVoice = item.value === 'true';
         });
 
         const updated = { ...settings, ...newSettings };
@@ -96,6 +104,12 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         apiPayload.push({
           key: 'show_example_questions',
           value: String(newSettings.showExampleQuestions),
+        });
+      }
+      if (newSettings.autoSendVoice !== undefined) {
+        apiPayload.push({
+          key: 'auto_send_voice',
+          value: String(newSettings.autoSendVoice),
         });
       }
 

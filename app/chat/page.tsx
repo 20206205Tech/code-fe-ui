@@ -35,7 +35,7 @@ export default function ChatPage() {
     scrollToBottom();
   }, [messages]);
 
-  const handleSendMessage = async (message: string) => {
+  const handleSendMessage = async (message: string, docIds?: string[]) => {
     if (!message.trim()) return;
 
     // Add user message
@@ -45,12 +45,17 @@ export default function ChatPage() {
 
     try {
       // Simulate API call - for now, respond with default content
+      // Note: docIds will be sent to the backend in the future
+      console.log('Sending message with docIds:', docIds);
+
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       const assistantMessage: Message = {
         role: 'assistant',
         content:
-          'Đây là phản hồi mặc định từ trợ lý AI. Tính năng chat đang ở chế độ demo.',
+          docIds && docIds.length > 0
+            ? `Bạn đã gửi ${docIds.length} tài liệu (IDs: ${docIds.join(', ')}). Đây là phản hồi mặc định từ trợ lý AI.`
+            : 'Đây là phản hồi mặc định từ trợ lý AI. Tính năng chat đang ở chế độ demo.',
       };
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
