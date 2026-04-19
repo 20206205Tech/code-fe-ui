@@ -11,8 +11,17 @@ import {
   ChatMessage as ApiMessage,
 } from '@/services/chat.service';
 import { useEffect, useRef, useState } from 'react';
-import { MessageSquare, Loader2, Info } from 'lucide-react';
+import { MessageSquare, Loader2, Info, Share2, Bookmark } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { ShareModal } from '@/components/share-modal';
+import { BookmarkModal } from '@/components/bookmark-modal';
+import { Button } from '@/components/ui/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -40,6 +49,8 @@ export default function ChatPage() {
     searchParams.get('id')
   );
   const [currentStatus, setCurrentStatus] = useState<string | null>(null);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isBookmarkModalOpen, setIsBookmarkModalOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -160,8 +171,46 @@ export default function ChatPage() {
       <Sidebar />
 
       <div className="flex-1 flex flex-col md:ml-0">
-        {/* Header */}
-        <UserMenuHeader />
+        {/* Header with Actions */}
+        <UserMenuHeader>
+          {activeChatId && (
+            <div className="flex items-center gap-1 mr-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setIsBookmarkModalOpen(true)}
+                      className="text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 h-9 w-9"
+                    >
+                      <Bookmark size={18} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Lưu vào Bookmark</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setIsShareModalOpen(true)}
+                      className="text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 h-9 w-9"
+                    >
+                      <Share2 size={18} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Chia sẻ</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <div className="w-px h-6 bg-slate-200 dark:bg-slate-800 mx-1" />
+            </div>
+          )}
+        </UserMenuHeader>
 
         {/* Messages Container */}
         <main className="flex-1 overflow-y-auto pt-16 pb-24">
@@ -261,6 +310,18 @@ export default function ChatPage() {
           </div>
         </div>
       </div>
+
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        chatId={activeChatId}
+      />
+
+      <BookmarkModal
+        isOpen={isBookmarkModalOpen}
+        onClose={() => setIsBookmarkModalOpen(false)}
+        chatId={activeChatId}
+      />
     </div>
   );
 }

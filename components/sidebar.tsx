@@ -14,11 +14,26 @@ import {
   CreditCard,
   Sparkles,
   Loader2,
+  Bookmark,
+  ChevronDown,
+  FolderOpen,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { chatService, ChatSession } from '@/services/chat.service';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 export function Sidebar() {
   const { user, logout } = useAuth();
@@ -28,7 +43,9 @@ export function Sidebar() {
 
   const [isOpen, setIsOpen] = useState(false);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [bookmarkFolders, setBookmarkFolders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isBookmarksLoading, setIsBookmarksLoading] = useState(false);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -36,6 +53,7 @@ export function Sidebar() {
 
   useEffect(() => {
     loadHistory();
+    loadBookmarks();
   }, [activeChatId]); // Refresh history when active chat changes or on mount
 
   const loadHistory = async () => {
@@ -47,6 +65,25 @@ export function Sidebar() {
       console.error('Failed to load chat history:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadBookmarks = async () => {
+    setIsBookmarksLoading(true);
+    try {
+      const folders = await chatService.getBookmarkFolders();
+      // For each folder, fetch detail to get items
+      const foldersWithItems = await Promise.all(
+        folders.map(async (f) => {
+          const detail = await chatService.getBookmarkDetail(f.id);
+          return { ...f, items: detail.items || [] };
+        })
+      );
+      setBookmarkFolders(foldersWithItems);
+    } catch (error) {
+      console.error('Failed to load bookmarks:', error);
+    } finally {
+      setIsBookmarksLoading(false);
     }
   };
 
@@ -105,41 +142,117 @@ export function Sidebar() {
         </div>
 
         {/* Chat History */}
-        <div className="flex-1 overflow-y-auto p-4">
-          <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-3">
-            Chat History
-          </h2>
-          <div className="space-y-2">
-            {isLoading && sessions.length === 0 ? (
-              <div className="flex justify-center py-8">
-                <Loader2 size={20} className="animate-spin text-slate-400" />
-              </div>
-            ) : sessions.length > 0 ? (
-              sessions.map((session) => (
-                <button
-                  key={session.id}
-                  onClick={() => {
-                    setIsOpen(false);
-                    router.push(`/chat?id=${session.id}`);
-                  }}
-                  className={`w-full text-left p-3 rounded-lg text-sm transition-all ${
-                    activeChatId === session.id
-                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium border border-blue-100 dark:border-blue-800'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                  }`}
+        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+          {/* Chat History */}
+          <div>
+            <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-3 px-1">
+              Chat History
+            </h2>
+            <div className="space-y-2">
+              {isLoading && sessions.length === 0 ? (
+                <div className="flex justify-center py-4">
+                  <Loader2 size={16} className="animate-spin text-slate-400" />
+                </div>
+              ) : sessions.length > 0 ? (
+                sessions.slice(0, 5).map((session) => (
+                  <button
+                    key={session.id}
+                    onClick={() => {
+                      setIsOpen(false);
+                      router.push(`/chat?id=${session.id}`);
+                    }}
+                    className={`w-full text-left p-3 rounded-lg text-sm transition-all ${
+                      activeChatId === session.id
+                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium border border-blue-100 dark:border-blue-800'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <p className="truncate">
+                      {session.title || 'Cuộc trò chuyện mới'}
+                    </p>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
+                      {new Date(session.updated_at).toLocaleDateString('vi-VN')}
+                    </p>
+                  </button>
+                ))
+              ) : (
+                <div className="text-sm text-slate-500 dark:text-slate-400 py-4 px-1">
+                  No history
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Bookmarks Section */}
+          <div>
+            <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-3 px-1 flex items-center gap-2">
+              <Bookmark size={12} fill="currentColor" />
+              Bookmarks
+            </h2>
+
+            <Accordion type="single" collapsible className="w-full">
+              {bookmarkFolders.map((folder) => (
+                <AccordionItem
+                  key={folder.id}
+                  value={folder.id}
+                  className="border-none"
                 >
-                  <p className="truncate">
-                    {session.title || 'Cuộc trò chuyện mới'}
-                  </p>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
-                    {new Date(session.updated_at).toLocaleDateString('vi-VN')}
-                  </p>
-                </button>
-              ))
-            ) : (
-              <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-8">
-                No chat history yet
-              </div>
+                  <AccordionTrigger className="hover:no-underline py-2 px-1 text-sm font-medium text-slate-700 dark:text-slate-300">
+                    <div className="flex items-center gap-2 truncate">
+                      <FolderOpen
+                        size={14}
+                        className="text-blue-500 shrink-0"
+                      />
+                      <span className="truncate">{folder.folderName}</span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-1 pb-2">
+                    <div className="space-y-1 pl-4 border-l border-slate-200 dark:border-slate-800 ml-2">
+                      {folder.items?.length > 0 ? (
+                        folder.items.map((item: any) => (
+                          <TooltipProvider key={item.id}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={() => {
+                                    setIsOpen(false);
+                                    router.push(`/chat?id=${item.chatId}`);
+                                  }}
+                                  className={`w-full text-left py-1.5 px-2 rounded text-[13px] truncate transition-colors ${
+                                    activeChatId === item.chatId
+                                      ? 'text-blue-600 dark:text-blue-400 font-medium bg-blue-50/50 dark:bg-blue-900/10'
+                                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                  }`}
+                                >
+                                  {item.title || 'Đã lưu'}
+                                </button>
+                              </TooltipTrigger>
+                              {item.note && (
+                                <TooltipContent
+                                  side="right"
+                                  className="max-w-[200px] text-xs"
+                                >
+                                  {item.note}
+                                </TooltipContent>
+                              )}
+                            </Tooltip>
+                          </TooltipProvider>
+                        ))
+                      ) : (
+                        <p className="text-[11px] text-slate-400 py-1 pl-2">
+                          Thư mục trống
+                        </p>
+                      )}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+
+            {!isBookmarksLoading && bookmarkFolders.length === 0 && (
+              <p className="text-[11px] text-slate-400 px-1">
+                Chưa có Bookmark nào
+              </p>
             )}
           </div>
         </div>
