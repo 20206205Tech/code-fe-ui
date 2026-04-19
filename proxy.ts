@@ -4,7 +4,9 @@ import { getUserRoleFromToken } from './lib/token-helper';
 
 const publicRoutes = ['/login', '/auth/callback'];
 
-const adminRoutes = ['/data-pipeline'];
+// Các route cần quyền admin. Chỉ cần khai báo tiền tố '/admin'
+// vì logic .startsWith() sẽ bao quát tất cả các trang con như /admin/data-pipeline.
+const adminRoutes = ['/admin'];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

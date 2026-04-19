@@ -12,6 +12,7 @@ import {
   IssueDate,
   WorkflowSummary,
 } from '@/services/data-pipeline.service';
+import { FileText, Database, Activity, CheckCircle } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -26,7 +27,6 @@ import {
   LineChart,
   Line,
 } from 'recharts';
-import { Activity, Database, FileText, CheckCircle } from 'lucide-react';
 
 const COLORS = [
   '#0088FE',
@@ -41,28 +41,23 @@ const COLORS = [
 
 export default function AdminPage() {
   const router = useRouter();
-
   const { user, isLoading, isAuthenticated, tokens } = useAuth();
 
-  // Kiểm tra role an toàn từ memory
+  // Role check
   const isAdmin = user?.role === 'admin';
-
   const token = tokens?.access_token;
 
-  // State lưu trữ dữ liệu
+  // State
   const [docTotal, setDocTotal] = useState<DocumentTotal | null>(null);
   const [docStatus, setDocStatus] = useState<DocumentStatus[]>([]);
   const [issueDates, setIssueDates] = useState<IssueDate[]>([]);
   const [workflowSummary, setWorkflowSummary] = useState<WorkflowSummary[]>([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
-
-  // State cho bộ lọc năm của biểu đồ LineChart
   const [yearRange, setYearRange] = useState<number | 'all'>(20);
 
   // Load Data
   useEffect(() => {
     async function loadDashboardData() {
-      // Thay 'YOUR_TOKEN' bằng token thực tế từ auth context của bạn
       const accessToken = token || 'YOUR_MOCK_TOKEN';
       try {
         const [total, status, dates, summary] = await Promise.all([
@@ -73,11 +68,9 @@ export default function AdminPage() {
         ]);
 
         setDocTotal(total);
-        // Xử lý null status thành text "Chưa phân loại"
         setDocStatus(
           status.map((s) => ({ ...s, status: s.status || 'Chưa phân loại' }))
         );
-        // Sort năm tăng dần để vẽ biểu đồ line cho đẹp
         setIssueDates(dates.sort((a, b) => a.year - b.year));
         setWorkflowSummary(summary);
       } catch (error) {
@@ -102,19 +95,14 @@ export default function AdminPage() {
     }
   }, [isLoading, isAuthenticated, isAdmin, router]);
 
-  // Logic lọc dữ liệu năm linh hoạt bằng useMemo để tối ưu hiệu suất
+  // Year filter logic
   const filteredIssueDates = useMemo(() => {
     if (!issueDates.length) return [];
-
-    const currentYear = new Date().getFullYear(); // Lấy năm hiện tại tự động
+    const currentYear = new Date().getFullYear();
 
     return issueDates.filter((d) => {
-      // Loại bỏ các năm trong tương lai (nếu có dữ liệu rác)
       if (d.year > currentYear) return false;
-
       if (yearRange === 'all') return true;
-
-      // Lấy trong khoảng yearRange tính từ năm hiện tại
       return d.year >= currentYear - yearRange;
     });
   }, [issueDates, yearRange]);
@@ -173,7 +161,7 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Biểu đồ số lượng văn bản theo năm ban hành có Nút Lọc */}
+              {/* Biểu đồ số lượng văn bản theo năm ban hành */}
               <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
                   <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
@@ -181,24 +169,6 @@ export default function AdminPage() {
                     {yearRange === 'all' ? '(Tất cả)' : `(${yearRange} năm)`}
                   </h2>
 
-                  {/* Filter Buttons */}
-                  {/* <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
-                    {[5, 10, 20, 'all'].map((range) => (
-                      <button
-                        key={range}
-                        onClick={() => setYearRange(range as number | 'all')}
-                        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${
-                          yearRange === range
-                            ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-white shadow-sm'
-                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                        }`}
-                      >
-                        {range === 'all' ? 'Tất cả' : `${range} năm`}
-                      </button>
-                    ))}
-                  </div> */}
-
-                  {/* Thay thế phần Filter Buttons cũ bằng Dropdown này */}
                   <div className="flex items-center">
                     <select
                       value={yearRange}
@@ -287,36 +257,6 @@ export default function AdminPage() {
           </div>
         </main>
       </div>
-    </div>
-  );
-}
-
-// Sub-component cho các ô thống kê
-function StatCard({
-  title,
-  value,
-  icon,
-  subtitle,
-}: {
-  title: string;
-  value: string;
-  icon: React.ReactNode;
-  subtitle?: string;
-}) {
-  return (
-    <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col">
-      <div className="flex justify-between items-start mb-4">
-        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400">
-          {title}
-        </h3>
-        <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">
-          {icon}
-        </div>
-      </div>
-      <div className="text-2xl font-bold text-slate-900 dark:text-white">
-        {value}
-      </div>
-      {subtitle && <p className="text-xs text-slate-400 mt-2">{subtitle}</p>}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { BaseApiUrl } from '@/config/env.config';
+import apiClient from '@/lib/api-client';
 
 export interface BaseResponse<T> {
   success: boolean;
@@ -42,30 +42,34 @@ export interface IssueDate {
 }
 
 async function fetchWithAuth<T>(endpoint: string, token: string): Promise<T> {
-  const url = `${BaseApiUrl()}/data-pipeline-service/api${endpoint}`;
+  const url = `/data-pipeline-service/api${endpoint}`;
 
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      accept: 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  try {
+    const response = await apiClient.get(url, {
+      headers: {
+        accept: 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
-  if (!response.ok) {
-    throw new Error(`API call failed: ${response.statusText}`);
+    const jsonResponse: BaseResponse<T> = response.data;
+
+    // Kiểm tra cờ success từ backend (tuỳ chọn nhưng rất nên làm)
+    if (!jsonResponse.success) {
+      throw new Error(jsonResponse.message || 'Có lỗi xảy ra từ server');
+    }
+
+    // Trả về đúng trường data mà component đang mong đợi
+    return jsonResponse.data;
+  } catch (error: any) {
+    if (error.response) {
+      const jsonResponse: BaseResponse<T> = error.response.data;
+      throw new Error(
+        jsonResponse.message || `API call failed: ${error.message}`
+      );
+    }
+    throw new Error(`API call failed: ${error.message}`);
   }
-
-  // Parse response theo kiểu BaseResponse<T>
-  const jsonResponse: BaseResponse<T> = await response.json();
-
-  // Kiểm tra cờ success từ backend (tuỳ chọn nhưng rất nên làm)
-  if (!jsonResponse.success) {
-    throw new Error(jsonResponse.message || 'Có lỗi xảy ra từ server');
-  }
-
-  // Trả về đúng trường data mà component đang mong đợi
-  return jsonResponse.data;
 }
 
 export const DataPipelineService = {
