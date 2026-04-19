@@ -5,6 +5,13 @@ interface ChatMessageProps {
   content: string;
   avatar?: string;
   userName?: string;
+  sources?: {
+    source: string;
+    item_id?: string;
+    legal_status?: string;
+    retrieval_type?: string;
+    score?: number;
+  }[];
 }
 
 export function ChatMessage({
@@ -12,6 +19,7 @@ export function ChatMessage({
   content,
   avatar,
   userName = 'User',
+  sources,
 }: ChatMessageProps) {
   const isUser = role === 'user';
 
@@ -48,7 +56,40 @@ export function ChatMessage({
               : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white rounded-bl-none'
           }`}
         >
-          <p className="text-sm leading-relaxed">{content}</p>
+          <p className="text-sm leading-relaxed whitespace-pre-wrap">
+            {content}
+          </p>
+
+          {/* Sources Section */}
+          {sources && sources.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700">
+              <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-2 tracking-wider">
+                Nguồn trích dẫn
+              </p>
+              <div className="space-y-2">
+                {sources.map((src, i) => (
+                  <div
+                    key={i}
+                    className="flex flex-col gap-1 p-2 rounded bg-white/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-[11px]"
+                  >
+                    <span className="font-semibold text-blue-600 dark:text-blue-400 line-clamp-1">
+                      {src.source}
+                    </span>
+                    <div className="flex gap-2 text-slate-500 dark:text-slate-400">
+                      {src.legal_status && (
+                        <span className="bg-slate-200 dark:bg-slate-800 px-1 rounded">
+                          {src.legal_status}
+                        </span>
+                      )}
+                      {src.retrieval_type && (
+                        <span>Type: {src.retrieval_type}</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

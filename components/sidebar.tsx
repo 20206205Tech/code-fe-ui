@@ -13,10 +13,12 @@ import {
   Workflow,
   CreditCard,
   Sparkles,
+  Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { chatService, ChatSession } from '@/services/chat.service';
 
 export function Sidebar() {
   const { user, logout } = useAuth();
@@ -25,7 +27,28 @@ export function Sidebar() {
   const isAdmin = user?.role === 'admin';
 
   const [isOpen, setIsOpen] = useState(false);
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const activeChatId = searchParams.get('id');
+
+  useEffect(() => {
+    loadHistory();
+  }, [activeChatId]); // Refresh history when active chat changes or on mount
+
+  const loadHistory = async () => {
+    setIsLoading(true);
+    try {
+      const history = await chatService.getHistory();
+      setSessions(history);
+    } catch (error) {
+      console.error('Failed to load chat history:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -87,10 +110,37 @@ export function Sidebar() {
             Chat History
           </h2>
           <div className="space-y-2">
-            {/* Placeholder for chat history */}
-            <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-8">
-              No chat history yet
-            </div>
+            {isLoading && sessions.length === 0 ? (
+              <div className="flex justify-center py-8">
+                <Loader2 size={20} className="animate-spin text-slate-400" />
+              </div>
+            ) : sessions.length > 0 ? (
+              sessions.map((session) => (
+                <button
+                  key={session.id}
+                  onClick={() => {
+                    setIsOpen(false);
+                    router.push(`/chat?id=${session.id}`);
+                  }}
+                  className={`w-full text-left p-3 rounded-lg text-sm transition-all ${
+                    activeChatId === session.id
+                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium border border-blue-100 dark:border-blue-800'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <p className="truncate">
+                    {session.title || 'Cuộc trò chuyện mới'}
+                  </p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
+                    {new Date(session.updated_at).toLocaleDateString('vi-VN')}
+                  </p>
+                </button>
+              ))
+            ) : (
+              <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-8">
+                No chat history yet
+              </div>
+            )}
           </div>
         </div>
 

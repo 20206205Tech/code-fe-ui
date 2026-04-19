@@ -6,12 +6,20 @@ import { Sidebar } from '@/components/sidebar';
 import { UserMenuHeader } from '@/components/user-menu-header';
 import { useAuth } from '@/lib/auth-context';
 import { useSettings } from '@/lib/settings-context';
+import {
+  chatService,
+  ChatMessage as ApiMessage,
+} from '@/services/chat.service';
 import { useEffect, useRef, useState } from 'react';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Loader2, Info } from 'lucide-react';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  isStreaming?: boolean;
+  status?: string;
+  sources?: any[];
 }
 
 const EXAMPLE_QUESTIONS = [
@@ -23,9 +31,45 @@ const EXAMPLE_QUESTIONS = [
 export default function ChatPage() {
   const { user } = useAuth();
   const { settings } = useSettings();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [activeChatId, setActiveChatId] = useState<string | null>(
+    searchParams.get('id')
+  );
+  const [currentStatus, setCurrentStatus] = useState<string | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load chat detail if ID is present
+  useEffect(() => {
+    const chatId = searchParams.get('id');
+    if (chatId) {
+      setActiveChatId(chatId);
+      loadChatDetail(chatId);
+    } else {
+      setActiveChatId(null);
+      setMessages([]);
+    }
+  }, [searchParams]);
+
+  const loadChatDetail = async (chatId: string) => {
+    setIsLoading(true);
+    try {
+      const history = await chatService.getChatMessages(chatId);
+      const mappedMessages: Message[] = history.map((m) => ({
+        role: m.role === 'human' ? 'user' : 'assistant',
+        content: m.content,
+      }));
+      setMessages(mappedMessages);
+    } catch (error) {
+      console.error('Failed to load chat detail:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -36,32 +80,77 @@ export default function ChatPage() {
   }, [messages]);
 
   const handleSendMessage = async (message: string, docIds?: string[]) => {
-    if (!message.trim()) return;
+    if (!message.trim() || isLoading) return;
 
-    // Add user message
+    let chatId = activeChatId;
+
+    // Add user message to UI
     const userMessage: Message = { role: 'user', content: message };
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
+    setCurrentStatus('Đang khởi tạo...');
 
     try {
-      // Simulate API call - for now, respond with default content
-      // Note: docIds will be sent to the backend in the future
-      console.log('Sending message with docIds:', docIds);
+      // 1. Start chat if not exists
+      if (!chatId) {
+        const session = await chatService.startChat();
+        chatId = session.chatId;
+        setActiveChatId(chatId);
+        // Update URL without refreshing
+        window.history.pushState({}, '', `/chat?id=${chatId}`);
+      }
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
+      // 2. Prepare assistant message placeholder
       const assistantMessage: Message = {
         role: 'assistant',
-        content:
-          docIds && docIds.length > 0
-            ? `Bạn đã gửi ${docIds.length} tài liệu (IDs: ${docIds.join(', ')}). Đây là phản hồi mặc định từ trợ lý AI.`
-            : 'Đây là phản hồi mặc định từ trợ lý AI. Tính năng chat đang ở chế độ demo.',
+        content: '',
+        isStreaming: true,
       };
       setMessages((prev) => [...prev, assistantMessage]);
+
+      // 3. Stream chat
+      await chatService.streamChat(chatId, message, docIds || [], (update) => {
+        if (update.type === 'status') {
+          setCurrentStatus(update.message);
+        } else if (update.type === 'content') {
+          setCurrentStatus(null);
+          setMessages((prev) => {
+            const newMessages = [...prev];
+            const lastMsg = newMessages[newMessages.length - 1];
+            if (lastMsg && lastMsg.role === 'assistant') {
+              lastMsg.content += update.message;
+            }
+            return newMessages;
+          });
+        } else if (update.type === 'metadata') {
+          setCurrentStatus(null);
+          setMessages((prev) => {
+            const newMessages = [...prev];
+            const lastMsg = newMessages[newMessages.length - 1];
+            if (lastMsg && lastMsg.role === 'assistant') {
+              lastMsg.isStreaming = false;
+              lastMsg.sources = update.message.sources;
+              // Use full_answer if available for final consistency
+              if (update.message.full_answer) {
+                lastMsg.content = update.message.full_answer;
+              }
+            }
+            return newMessages;
+          });
+        }
+      });
     } catch (error) {
       console.error('Error sending message:', error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: 'Đã xảy ra lỗi khi kết nối với máy chủ. Vui lòng thử lại.',
+        },
+      ]);
     } finally {
       setIsLoading(false);
+      setCurrentStatus(null);
     }
   };
 
@@ -116,28 +205,45 @@ export default function ChatPage() {
                     content={msg.content}
                     avatar={msg.role === 'user' ? user?.avatar : undefined}
                     userName={user?.name || 'User'}
+                    sources={msg.sources}
                   />
                 ))}
-                {isLoading && (
-                  <div className="flex gap-4 py-6">
-                    <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
-                      <div className="w-2 h-2 bg-slate-400 dark:bg-slate-500 rounded-full animate-pulse" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex gap-2">
-                        <div className="w-2 h-2 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce" />
-                        <div
-                          className="w-2 h-2 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce"
-                          style={{ animationDelay: '0.1s' }}
-                        />
-                        <div
-                          className="w-2 h-2 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce"
-                          style={{ animationDelay: '0.2s' }}
-                        />
+                {isLoading &&
+                  messages.length > 0 &&
+                  !messages[messages.length - 1].isStreaming && (
+                    <div className="flex gap-4 py-6">
+                      <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
+                        <div className="w-2 h-2 bg-slate-400 dark:bg-slate-500 rounded-full animate-pulse" />
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <div className="flex gap-2">
+                          <div className="w-2 h-2 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce" />
+                          <div
+                            className="w-2 h-2 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce"
+                            style={{ animationDelay: '0.1s' }}
+                          />
+                          <div
+                            className="w-2 h-2 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce"
+                            style={{ animationDelay: '0.2s' }}
+                          />
+                        </div>
+                        {currentStatus && (
+                          <p className="text-xs text-slate-500 animate-pulse italic">
+                            {currentStatus}
+                          </p>
+                        )}
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
+
+                {/* Streaming Status (Above the current typing message) */}
+                {currentStatus &&
+                  messages[messages.length - 1]?.isStreaming && (
+                    <div className="flex items-center gap-2 px-14 py-2 text-xs text-blue-600 dark:text-blue-400 font-medium italic animate-pulse">
+                      <Loader2 size={12} className="animate-spin" />
+                      {currentStatus}
+                    </div>
+                  )}
                 <div ref={messagesEndRef} />
               </div>
             )}
