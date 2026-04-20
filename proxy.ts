@@ -10,7 +10,8 @@ const adminRoutes = ['/admin'];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const isPublicRoute = publicRoutes.includes(pathname);
+  const isPublicRoute =
+    publicRoutes.includes(pathname) || pathname.startsWith('/share/');
 
   const authTokensCookie = request.cookies.get(TOKEN_STORAGE_KEY)?.value;
   let hasAuth = false;

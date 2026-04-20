@@ -17,16 +17,17 @@ export default function PublicSharePage() {
   useEffect(() => {
     const loadDetail = async () => {
       try {
-        const data = await chatShareService.getPublicShareDetail(
+        const response = await chatShareService.getPublicShareDetail(
           shareId,
           token
         );
-        // The API likely returns a list of messages or a session with messages
-        // Based on common patterns and the getDetailShare operation:
-        if (data.data && data.data.messages) {
-          setMessages(data.data.messages);
-        } else if (Array.isArray(data.data)) {
-          setMessages(data.data);
+        // The API returns { message: string, data: { data: messages[], shareId, chatId, totalMessages } }
+        if (response.data && Array.isArray(response.data.data)) {
+          setMessages(response.data.data);
+        } else if (response.data && Array.isArray(response.data.messages)) {
+          setMessages(response.data.messages);
+        } else if (Array.isArray(response.data)) {
+          setMessages(response.data);
         }
       } catch (err) {
         setError('Liên kết này không tồn tại hoặc đã hết hạn.');
