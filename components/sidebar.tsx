@@ -2,40 +2,22 @@
 
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth-context';
-import { tr } from 'date-fns/locale';
+import { chatBookmarkService } from '@/services/chat-bookmark.service';
+import { chatService, ChatSession } from '@/services/chat.service';
 import {
+  Bookmark,
+  CreditCard,
+  ExternalLink,
+  Loader2,
   LogOut,
   Menu,
   Plus,
-  Settings,
-  User,
-  ShieldCheck,
-  Workflow,
-  CreditCard,
   Sparkles,
-  Loader2,
-  Bookmark,
-  ChevronDown,
-  FolderOpen,
-  ExternalLink,
+  Workflow,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import { chatService, ChatSession } from '@/services/chat.service';
-import { chatBookmarkService } from '@/services/chat-bookmark.service';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { useEffect, useState } from 'react';
 
 export function Sidebar() {
   const { user, logout } = useAuth();
@@ -194,7 +176,7 @@ export function Sidebar() {
               className="w-full justify-start text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               <Bookmark size={18} className="mr-2 text-blue-500" />
-              Bookmarks
+              Sổ ghi chú
             </Button>
           </Link>
 
@@ -204,7 +186,7 @@ export function Sidebar() {
               className="w-full justify-start text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               <ExternalLink size={18} className="mr-2 text-purple-500" />
-              Shared Links
+              Chia sẻ
             </Button>
           </Link>
 
