@@ -112,9 +112,7 @@ export default function PlansAdmin() {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h2 className="text-2xl font-bold">Quản lý gói cước</h2>
-          <p className="text-muted-foreground">
-            Thêm, sửa hoặc xóa các gói đăng ký
-          </p>
+          <p className="text-muted-foreground">Quản lý các gói đăng ký</p>
         </div>
 
         <Dialog open={isOpeningDialog} onOpenChange={setIsOpeningDialog}>
@@ -244,13 +242,13 @@ export default function PlansAdmin() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right space-x-2">
-                    <Button
+                    {/* <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => toast.info('Tính năng Edit sẽ sớm ra mắt')}
                     >
                       <Edit2 className="w-4 h-4" />
-                    </Button>
+                    </Button> */}
                     <Button
                       variant="ghost"
                       size="icon"

@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Bookmark, FolderPlus, Loader2, Plus, Check } from 'lucide-react';
-import { chatService } from '@/services/chat.service';
+import { chatBookmarkService } from '@/services/chat-bookmark.service';
 import { toast } from 'sonner';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -41,7 +41,7 @@ export function BookmarkModal({ isOpen, onClose, chatId }: BookmarkModalProps) {
   const loadFolders = async () => {
     setIsLoading(true);
     try {
-      const data = await chatService.getBookmarkFolders();
+      const data = await chatBookmarkService.getBookmarkFolders();
       setFolders(data);
       if (data.length > 0 && !selectedFolderId) {
         setSelectedFolderId(data[0].id);
@@ -57,7 +57,7 @@ export function BookmarkModal({ isOpen, onClose, chatId }: BookmarkModalProps) {
     if (!newFolderName.trim()) return;
     setIsLoading(true);
     try {
-      await chatService.createBookmarkFolder(newFolderName);
+      await chatBookmarkService.createBookmarkFolder(newFolderName);
       setNewFolderName('');
       setIsCreatingFolder(false);
       await loadFolders();
@@ -73,7 +73,7 @@ export function BookmarkModal({ isOpen, onClose, chatId }: BookmarkModalProps) {
     if (!chatId || !selectedFolderId) return;
     setIsSaving(true);
     try {
-      await chatService.addBookmarkItem(selectedFolderId, chatId, note);
+      await chatBookmarkService.addBookmarkItem(selectedFolderId, chatId, note);
       toast.success('Đã lưu vào Bookmark!');
       onClose();
     } catch (error) {

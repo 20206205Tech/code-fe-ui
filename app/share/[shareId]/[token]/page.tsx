@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { ChatMessage } from '@/components/chat-message';
-import { chatService } from '@/services/chat.service';
+import { chatShareService } from '@/services/chat-share.service';
 import { Loader2, AlertCircle, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -17,7 +17,10 @@ export default function PublicSharePage() {
   useEffect(() => {
     const loadDetail = async () => {
       try {
-        const data = await chatService.getPublicShareDetail(shareId, token);
+        const data = await chatShareService.getPublicShareDetail(
+          shareId,
+          token
+        );
         // The API likely returns a list of messages or a session with messages
         // Based on common patterns and the getDetailShare operation:
         if (data.data && data.data.messages) {
