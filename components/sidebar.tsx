@@ -2,38 +2,22 @@
 
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth-context';
-import { tr } from 'date-fns/locale';
+import { chatBookmarkService } from '@/services/chat-bookmark.service';
+import { chatService, ChatSession } from '@/services/chat.service';
 import {
+  Bookmark,
+  CreditCard,
+  ExternalLink,
+  Loader2,
   LogOut,
   Menu,
   Plus,
-  Settings,
-  User,
-  ShieldCheck,
-  Workflow,
-  CreditCard,
   Sparkles,
-  Loader2,
-  Bookmark,
-  ChevronDown,
-  FolderOpen,
+  Workflow,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import { chatService, ChatSession } from '@/services/chat.service';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { useEffect, useState } from 'react';
 
 export function Sidebar() {
   const { user, logout } = useAuth();
@@ -71,11 +55,11 @@ export function Sidebar() {
   const loadBookmarks = async () => {
     setIsBookmarksLoading(true);
     try {
-      const folders = await chatService.getBookmarkFolders();
+      const folders = await chatBookmarkService.getBookmarkFolders();
       // For each folder, fetch detail to get items
       const foldersWithItems = await Promise.all(
         folders.map(async (f) => {
-          const detail = await chatService.getBookmarkDetail(f.id);
+          const detail = await chatBookmarkService.getBookmarkDetail(f.id);
           return { ...f, items: detail.items || [] };
         })
       );
@@ -182,83 +166,30 @@ export function Sidebar() {
               )}
             </div>
           </div>
-
-          {/* Bookmarks Section */}
-          <div>
-            <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-3 px-1 flex items-center gap-2">
-              <Bookmark size={12} fill="currentColor" />
-              Bookmarks
-            </h2>
-
-            <Accordion type="single" collapsible className="w-full">
-              {bookmarkFolders.map((folder) => (
-                <AccordionItem
-                  key={folder.id}
-                  value={folder.id}
-                  className="border-none"
-                >
-                  <AccordionTrigger className="hover:no-underline py-2 px-1 text-sm font-medium text-slate-700 dark:text-slate-300">
-                    <div className="flex items-center gap-2 truncate">
-                      <FolderOpen
-                        size={14}
-                        className="text-blue-500 shrink-0"
-                      />
-                      <span className="truncate">{folder.folderName}</span>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="pt-1 pb-2">
-                    <div className="space-y-1 pl-4 border-l border-slate-200 dark:border-slate-800 ml-2">
-                      {folder.items?.length > 0 ? (
-                        folder.items.map((item: any) => (
-                          <TooltipProvider key={item.id}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button
-                                  onClick={() => {
-                                    setIsOpen(false);
-                                    router.push(`/chat?id=${item.chatId}`);
-                                  }}
-                                  className={`w-full text-left py-1.5 px-2 rounded text-[13px] truncate transition-colors ${
-                                    activeChatId === item.chatId
-                                      ? 'text-blue-600 dark:text-blue-400 font-medium bg-blue-50/50 dark:bg-blue-900/10'
-                                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
-                                  }`}
-                                >
-                                  {item.title || 'Đã lưu'}
-                                </button>
-                              </TooltipTrigger>
-                              {item.note && (
-                                <TooltipContent
-                                  side="right"
-                                  className="max-w-[200px] text-xs"
-                                >
-                                  {item.note}
-                                </TooltipContent>
-                              )}
-                            </Tooltip>
-                          </TooltipProvider>
-                        ))
-                      ) : (
-                        <p className="text-[11px] text-slate-400 py-1 pl-2">
-                          Thư mục trống
-                        </p>
-                      )}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-
-            {!isBookmarksLoading && bookmarkFolders.length === 0 && (
-              <p className="text-[11px] text-slate-400 px-1">
-                Chưa có Bookmark nào
-              </p>
-            )}
-          </div>
         </div>
 
         {/* User Menu */}
         <div className="p-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
+          <Link href="/bookmarks" onClick={() => setIsOpen(false)}>
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              <Bookmark size={18} className="mr-2 text-blue-500" />
+              Sổ ghi chú
+            </Button>
+          </Link>
+
+          <Link href="/shares" onClick={() => setIsOpen(false)}>
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              <ExternalLink size={18} className="mr-2 text-purple-500" />
+              Chia sẻ
+            </Button>
+          </Link>
+
           {user && (
             <Link href="/plans" onClick={() => setIsOpen(false)}>
               <Button
@@ -316,7 +247,7 @@ export function Sidebar() {
                   className="w-full justify-start text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
                   <CreditCard size={18} className="mr-2" />
-                  Quản lý gói
+                  Quản lý gói cước
                 </Button>
               </Link>
             </>

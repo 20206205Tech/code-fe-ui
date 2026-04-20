@@ -122,25 +122,25 @@ jobs:
           doppler-config: ${{ secrets.DOPPLER_CONFIG }}
           inject-env-vars: true
 
-      - name: Fetch secrets from Doppler API (Curl)
-        id: doppler_json_gen
-        run: |
-          RESPONSE=$(curl -s --request GET \
-            --url "https://api.doppler.com/v3/configs/config/secrets?project=${{ secrets.DOPPLER_PROJECT }}&config=${{ secrets.DOPPLER_CONFIG }}" \
-            --header "accept: application/json" \
-            --header "authorization: Bearer ${{ secrets.DOPPLER_TOKEN }}")
+      # - name: Fetch secrets from Doppler API (Curl)
+      #   id: doppler_json_gen
+      #   run: |
+      #     RESPONSE=$(curl -s --request GET \
+      #       --url "https://api.doppler.com/v3/configs/config/secrets?project=${{ secrets.DOPPLER_PROJECT }}&config=${{ secrets.DOPPLER_CONFIG }}" \
+      #       --header "accept: application/json" \
+      #       --header "authorization: Bearer ${{ secrets.DOPPLER_TOKEN }}")
 
-          if echo "$RESPONSE" | jq -e '.messages' > /dev/null; then
-            echo "API Error: $(echo "$RESPONSE" | jq -r '.messages[0]')"
-            exit 1
-          fi
+      #     if echo "$RESPONSE" | jq -e '.messages' > /dev/null; then
+      #       echo "API Error: $(echo "$RESPONSE" | jq -r '.messages[0]')"
+      #       exit 1
+      #     fi
 
-          # Chuyển đổi cấu trúc phức tạp của API thành dạng phẳng { "KEY": "VALUE" }
-          # Chúng ta lấy giá trị .computed vì nó đã giải mã các biến tham chiếu (ví dụ ${USER})
-          FLATTENED_JSON=$(echo "$RESPONSE" | jq -r '.secrets | map_values(.computed) | tojson')
+      #     # Chuyển đổi cấu trúc phức tạp của API thành dạng phẳng { "KEY": "VALUE" }
+      #     # Chúng ta lấy giá trị .computed vì nó đã giải mã các biến tham chiếu (ví dụ ${USER})
+      #     FLATTENED_JSON=$(echo "$RESPONSE" | jq -r '.secrets | map_values(.computed) | tojson')
 
-          echo "json_content=$FLATTENED_JSON" >> $GITHUB_OUTPUT
-        shell: bash
+      #     echo "json_content=$FLATTENED_JSON" >> $GITHUB_OUTPUT
+      #   shell: bash
 
       - name: Generate Metadata
         id: meta
@@ -159,21 +159,21 @@ jobs:
           echo "Linking project..."
           npx vercel pull --yes --environment=production --token=${{ steps.doppler.outputs.VERCEL_TOKEN }}
 
-      - name: Sync Doppler Secrets to Vercel
-        env:
-          DOPPLER_JSON: ${{ steps.doppler_json_gen.outputs.json_content }}
-        run: |
-          V_CMD="npx vercel --token=${{ steps.doppler.outputs.VERCEL_TOKEN }}"
+      # - name: Sync Doppler Secrets to Vercel
+      #   env:
+      #     DOPPLER_JSON: ${{ steps.doppler_json_gen.outputs.json_content }}
+      #   run: |
+      #     V_CMD="npx vercel --token=${{ steps.doppler.outputs.VERCEL_TOKEN }}"
 
-          # Add Root Domain vào Vercel project
-          $V_CMD domains add ${{ steps.meta.outputs.full_domain }} --force || true
+      #     # Add Root Domain vào Vercel project
+      #     $V_CMD domains add ${{ steps.meta.outputs.full_domain }} --force || true
 
-          # Đẩy từng biến môi trường sang Vercel (Production)
-          echo "$DOPPLER_JSON" | jq -r 'to_entries[] | .key + " " + (.value | tostring)' | while read -r key value; do
-            if [[ "$key" != "VERCEL_TOKEN" && "$key" != "DOPPLER_TOKEN" && "$key" != "CLOUDFLARE_*" ]]; then
-              printf "%s" "$value" | $V_CMD env add "$key" production --force || true
-            fi
-          done
+      #     # Đẩy từng biến môi trường sang Vercel (Production)
+      #     echo "$DOPPLER_JSON" | jq -r 'to_entries[] | .key + " " + (.value | tostring)' | while read -r key value; do
+      #       if [[ "$key" != "VERCEL_TOKEN" && "$key" != "DOPPLER_TOKEN" && "$key" != "CLOUDFLARE_*" ]]; then
+      #         printf "%s" "$value" | $V_CMD env add "$key" production --force || true
+      #       fi
+      #     done
 
       - name: Deploy to Vercel
         id: vercel_deploy

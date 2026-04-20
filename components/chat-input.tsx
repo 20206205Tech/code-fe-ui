@@ -16,6 +16,13 @@ import { useSettings } from '@/lib/settings-context';
 import { useAuth } from '@/lib/auth-context';
 import { documentService, DocumentInfo } from '@/services/document.service';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface ChatInputProps {
   onSend: (message: string, docIds?: string[]) => void;
@@ -36,7 +43,7 @@ export function ChatInput({ onSend, isLoading = false }: ChatInputProps) {
   const [docs, setDocs] = useState<DocumentInfo[]>([]);
   const pollingIntervals = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
-  // Check if can send message
+  const isVip = subscription?.status === 'active' || user?.role === 'admin';
   const isProcessing =
     isUploading ||
     docs.some((d) => d.status !== 'COMPLETED' && d.status !== 'FAILED');
@@ -277,29 +284,49 @@ export function ChatInput({ onSend, isLoading = false }: ChatInputProps) {
             rows={1}
           />
           <div className="pb-2 pr-2 flex items-center gap-1">
-            {/* File Upload Button (Conditional on Subscription or Admin Role) */}
-            {(subscription?.status === 'active' || user?.role === 'admin') && (
-              <>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                  className="hidden"
-                  accept=".pdf,.doc,.docx,.txt"
-                  multiple
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isLoading || isProcessing}
-                  className="rounded-full h-9 w-9 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                >
-                  <Paperclip size={18} />
-                </Button>
-              </>
-            )}
+            {/* File Upload Button (Always shown, but muted/disabled for non-VIP) */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+              accept=".pdf,.doc,.docx,.txt"
+              multiple
+            />
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      if (isVip) {
+                        fileInputRef.current?.click();
+                      } else {
+                        toast.info(
+                          'Vui lòng nâng cấp gói cước để sử dụng tính năng này.'
+                        );
+                      }
+                    }}
+                    disabled={isLoading || isProcessing}
+                    className={cn(
+                      'rounded-full h-9 w-9 transition-all duration-300',
+                      isVip
+                        ? 'text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                        : 'text-slate-400 dark:text-slate-600 opacity-40 hover:opacity-100'
+                    )}
+                  >
+                    <Paperclip size={18} />
+                  </Button>
+                </TooltipTrigger>
+                {!isVip && (
+                  <TooltipContent side="top">
+                    <p className="text-xs">Nâng cấp VIP để tải tài liệu</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
 
             <Button
               type="button"

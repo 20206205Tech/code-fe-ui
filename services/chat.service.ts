@@ -81,6 +81,18 @@ export const chatService = {
 
     if (!reader) return;
 
+    const processLine = (line: string) => {
+      if (line.startsWith('data: ')) {
+        const currentData = line.substring(6);
+        try {
+          const parsed = JSON.parse(currentData);
+          onUpdate(parsed.data || parsed);
+        } catch (e) {
+          console.error('Error parsing stream chunk:', e);
+        }
+      }
+    };
+
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -89,90 +101,19 @@ export const chatService = {
       const lines = buffer.split('\n');
       buffer = lines.pop() || '';
 
-      let currentData = '';
       for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          currentData = line.substring(6);
-          try {
-            const parsed = JSON.parse(currentData);
-            onUpdate(parsed);
-          } catch (e) {
-            console.error('Error parsing stream chunk:', e);
-          }
-        }
+        processLine(line);
       }
+    }
+
+    // Process any remaining data in the buffer
+    if (buffer) {
+      processLine(buffer);
     }
   },
 
   deleteChat: async (chatId: string) => {
     await apiClient.delete(`${CONVERSATION_BASE}/${chatId}`);
-  },
-
-  // Bookmark Services (/conversation/bookmarks)
-  getBookmarkFolders: async (skip = 0, limit = 100) => {
-    const response = await apiClient.get<{ success: boolean; data: any[] }>(
-      '/conversation/bookmarks',
-      { params: { skip, limit } }
-    );
-    return response.data.data;
-  },
-
-  createBookmarkFolder: async (folderName: string) => {
-    const response = await apiClient.post('/conversation/bookmarks', {
-      folderName,
-    });
-    return response.data;
-  },
-
-  addBookmarkItem: async (folderId: string, chatId: string, note: string) => {
-    const response = await apiClient.put(
-      `/conversation/bookmarks/${folderId}/item`,
-      {
-        chatId,
-        note,
-      }
-    );
-    return response.data;
-  },
-
-  removeBookmarkItem: async (folderId: string, chatId: string) => {
-    await apiClient.delete(
-      `/conversation/bookmarks/${folderId}/item/${chatId}`
-    );
-  },
-
-  getBookmarkDetail: async (folderId: string) => {
-    const response = await apiClient.get(`/conversation/bookmarks/${folderId}`);
-    return response.data.data;
-  },
-
-  // Share Services (/conversation/shared-chats)
-  generateShareLink: async (chatId: string) => {
-    const response = await apiClient.post<{
-      data: { shareId: string; token: string };
-    }>('/conversation/shared-chats', { chat_id: chatId });
-    return response.data.data;
-  },
-
-  getMySharedChats: async (skip = 0, limit = 100) => {
-    const response = await apiClient.get('/conversation/shared-chats/me', {
-      params: { skip, limit },
-    });
-    return response.data;
-  },
-
-  getPublicShareDetail: async (shareId: string, token: string) => {
-    const response = await fetch(
-      `/api/backend/conversation/shared-chats/public/${shareId}/${token}`,
-      {
-        method: 'GET',
-        headers: {
-          Accept: 'application/json',
-        },
-      }
-    );
-    if (!response.ok) throw new Error('Shared chat not found or expired');
-    return await response.json();
   },
 
   // Chatbot Service: Persistence

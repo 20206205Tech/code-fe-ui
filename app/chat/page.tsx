@@ -1,20 +1,10 @@
 'use client';
 
+import { BookmarkModal } from '@/components/bookmark-modal';
 import { ChatInput } from '@/components/chat-input';
 import { ChatMessage } from '@/components/chat-message';
-import { Sidebar } from '@/components/sidebar';
-import { UserMenuHeader } from '@/components/user-menu-header';
-import { useAuth } from '@/lib/auth-context';
-import { useSettings } from '@/lib/settings-context';
-import {
-  chatService,
-  ChatMessage as ApiMessage,
-} from '@/services/chat.service';
-import { useEffect, useRef, useState, Suspense } from 'react';
-import { MessageSquare, Loader2, Info, Share2, Bookmark } from 'lucide-react';
-import { useSearchParams, useRouter } from 'next/navigation';
 import { ShareModal } from '@/components/share-modal';
-import { BookmarkModal } from '@/components/bookmark-modal';
+import { Sidebar } from '@/components/sidebar';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,
@@ -22,6 +12,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { UserMenuHeader } from '@/components/user-menu-header';
+import { useAuth } from '@/lib/auth-context';
+import { useSettings } from '@/lib/settings-context';
+import { chatService } from '@/services/chat.service';
+import { Bookmark, Loader2, MessageSquare, Share2 } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useRef, useState } from 'react';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -32,7 +29,8 @@ interface Message {
 }
 
 const EXAMPLE_QUESTIONS = [
-  'Tóm tắt nội dung của 009/SLT.',
+  'Xin chào. Bạn có khỏe không?',
+  // 'Tóm tắt nội dung của văn bản 009/SLT.',
   'Về quê họ hàng chơi có phải đăng ký tạm trú không?',
   'Quy định về xin giấy phép lao động cho người nước ngoài?',
 ];
@@ -48,6 +46,7 @@ function ChatContent() {
   const [activeChatId, setActiveChatId] = useState<string | null>(
     searchParams.get('id')
   );
+  const activeChatIdRef = useRef<string | null>(searchParams.get('id'));
   const [currentStatus, setCurrentStatus] = useState<string | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isBookmarkModalOpen, setIsBookmarkModalOpen] = useState(false);
@@ -58,9 +57,14 @@ function ChatContent() {
   useEffect(() => {
     const chatId = searchParams.get('id');
     if (chatId) {
-      setActiveChatId(chatId);
-      loadChatDetail(chatId);
+      // Load if ID changed OR if we have no messages (initial mount)
+      if (chatId !== activeChatIdRef.current || messages.length === 0) {
+        activeChatIdRef.current = chatId;
+        setActiveChatId(chatId);
+        loadChatDetail(chatId);
+      }
     } else {
+      activeChatIdRef.current = null;
       setActiveChatId(null);
       setMessages([]);
     }
@@ -106,6 +110,7 @@ function ChatContent() {
       if (!chatId) {
         const session = await chatService.startChat();
         chatId = session.chatId;
+        activeChatIdRef.current = chatId;
         setActiveChatId(chatId);
         // Update URL without refreshing
         window.history.pushState({}, '', `/chat?id=${chatId}`);
@@ -124,31 +129,54 @@ function ChatContent() {
         if (update.type === 'status') {
           setCurrentStatus(update.message);
         } else if (update.type === 'content') {
-          setCurrentStatus(null);
+          // Keep status visible during streaming unless metadata arrives
           setMessages((prev) => {
+            if (prev.length === 0) return prev;
             const newMessages = [...prev];
-            const lastMsg = newMessages[newMessages.length - 1];
+            const lastIdx = newMessages.length - 1;
+            const lastMsg = newMessages[lastIdx];
             if (lastMsg && lastMsg.role === 'assistant') {
-              lastMsg.content += update.message;
+              newMessages[lastIdx] = {
+                ...lastMsg,
+                content: (lastMsg.content || '') + update.message,
+              };
             }
             return newMessages;
           });
         } else if (update.type === 'metadata') {
           setCurrentStatus(null);
           setMessages((prev) => {
+            if (prev.length === 0) return prev;
             const newMessages = [...prev];
-            const lastMsg = newMessages[newMessages.length - 1];
+            const lastIdx = newMessages.length - 1;
+            const lastMsg = newMessages[lastIdx];
             if (lastMsg && lastMsg.role === 'assistant') {
-              lastMsg.isStreaming = false;
-              lastMsg.sources = update.message.sources;
-              // Use full_answer if available for final consistency
-              if (update.message.full_answer) {
-                lastMsg.content = update.message.full_answer;
-              }
+              newMessages[lastIdx] = {
+                ...lastMsg,
+                isStreaming: false,
+                sources: update.message.sources,
+                content: update.message.full_answer || lastMsg.content,
+              };
             }
             return newMessages;
           });
         }
+      });
+
+      // Fallback: Ensure the last message is no longer in "streaming" state
+      // This handles cases where the metadata packet might be missing
+      setMessages((prev) => {
+        if (prev.length === 0) return prev;
+        const newMessages = [...prev];
+        const lastIdx = newMessages.length - 1;
+        const lastMsg = newMessages[lastIdx];
+        if (lastMsg && lastMsg.role === 'assistant' && lastMsg.isStreaming) {
+          newMessages[lastIdx] = {
+            ...lastMsg,
+            isStreaming: false,
+          };
+        }
+        return newMessages;
       });
     } catch (error) {
       console.error('Error sending message:', error);
@@ -157,6 +185,7 @@ function ChatContent() {
         {
           role: 'assistant',
           content: 'Đã xảy ra lỗi khi kết nối với máy chủ. Vui lòng thử lại.',
+          isStreaming: false,
         },
       ]);
     } finally {
@@ -173,7 +202,7 @@ function ChatContent() {
       <div className="flex-1 flex flex-col md:ml-0">
         {/* Header with Actions */}
         <UserMenuHeader>
-          {activeChatId && (
+          {activeChatId && messages.length > 0 && (
             <div className="flex items-center gap-1 mr-2">
               <TooltipProvider>
                 <Tooltip>
@@ -248,14 +277,25 @@ function ChatContent() {
             ) : (
               <div className="p-4 md:p-6">
                 {messages.map((msg, idx) => (
-                  <ChatMessage
-                    key={idx}
-                    role={msg.role}
-                    content={msg.content}
-                    avatar={msg.role === 'user' ? user?.avatar : undefined}
-                    userName={user?.name || 'User'}
-                    sources={msg.sources}
-                  />
+                  <div key={idx}>
+                    {/* Move Status/Reasoning above the message bubble if it's the streaming assistant message */}
+                    {idx === messages.length - 1 &&
+                      msg.role === 'assistant' &&
+                      msg.isStreaming &&
+                      currentStatus && (
+                        <div className="flex items-center gap-2 px-14 py-2 text-xs text-blue-600 dark:text-blue-400 font-medium italic animate-pulse">
+                          <Loader2 size={12} className="animate-spin" />
+                          {currentStatus}
+                        </div>
+                      )}
+                    <ChatMessage
+                      role={msg.role}
+                      content={msg.content}
+                      avatar={msg.role === 'user' ? user?.avatar : undefined}
+                      userName={user?.name || 'User'}
+                      sources={msg.sources}
+                    />
+                  </div>
                 ))}
                 {isLoading &&
                   messages.length > 0 &&
@@ -282,15 +322,6 @@ function ChatContent() {
                           </p>
                         )}
                       </div>
-                    </div>
-                  )}
-
-                {/* Streaming Status (Above the current typing message) */}
-                {currentStatus &&
-                  messages[messages.length - 1]?.isStreaming && (
-                    <div className="flex items-center gap-2 px-14 py-2 text-xs text-blue-600 dark:text-blue-400 font-medium italic animate-pulse">
-                      <Loader2 size={12} className="animate-spin" />
-                      {currentStatus}
                     </div>
                   )}
                 <div ref={messagesEndRef} />
