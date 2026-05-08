@@ -107,7 +107,7 @@ export function Sidebar() {
         {/* Header */}
         <div className="p-4 border-b border-slate-200 dark:border-slate-800">
           <h1 className="text-xl font-bold text-slate-900 dark:text-white">
-            Chat
+            20206205Tech
           </h1>
         </div>
 

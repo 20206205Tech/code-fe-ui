@@ -35,9 +35,31 @@ export interface IssueDate {
   count: number;
 }
 
-const BASE_URL = '/data-pipeline-service/api';
+export interface DocType {
+  id: string;
+  code: string;
+  name: string;
+  total_count: number;
+}
 
-export const DataPipelineService = {
+export interface EffStatus {
+  id: string;
+  code: string;
+  name: string;
+  total_count: number;
+}
+
+export interface Major {
+  id: string;
+  code: string;
+  name: string;
+  short_name: string | null;
+  total_count: number;
+}
+
+const BASE_URL = '/data-pipeline-vbplnew';
+
+export const DataPipelineVbplnewService = {
   getWorkflows: () => apiHelper.get<Workflow[]>(`${BASE_URL}/workflows`),
   getWorkflowSummary: () =>
     apiHelper.get<WorkflowSummary[]>(`${BASE_URL}/workflows/summary`),
@@ -51,4 +73,9 @@ export const DataPipelineService = {
     }),
   getIssueDates: () =>
     apiHelper.get<IssueDate[]>(`${BASE_URL}/documents/issue-date`),
+  getDocTypes: () =>
+    apiHelper.get<DocType[]>(`${BASE_URL}/documents/doc-types`),
+  getEffStatuses: () =>
+    apiHelper.get<EffStatus[]>(`${BASE_URL}/documents/eff-statuses`),
+  getMajors: () => apiHelper.get<Major[]>(`${BASE_URL}/documents/majors`),
 };

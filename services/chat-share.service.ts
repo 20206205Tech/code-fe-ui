@@ -1,36 +1,31 @@
-import apiClient from '@/lib/api-client';
+import { apiHelper } from '@/lib/api-helper';
 
 export const chatShareService = {
-  // Share Services (/conversation/shared-chats)
-  generateShareLink: async (chatId: string) => {
-    const response = await apiClient.post<{
-      data: { shareId: string; token: string };
-    }>('/conversation/shared-chats', { chat_id: chatId });
-    return response.data.data;
+  generateShareLink: (chatId: string) => {
+    return apiHelper.post<{ shareId: string; token: string }>(
+      '/conversation/shared-chats',
+      { chat_id: chatId }
+    );
   },
 
-  getMySharedChats: async (skip = 0, limit = 100) => {
-    const response = await apiClient.get('/conversation/shared-chats/me', {
+  getMySharedChats: (skip = 0, limit = 100) => {
+    return apiHelper.get<any>('/conversation/shared-chats/me', {
       params: { skip, limit },
     });
-    return response.data;
   },
 
   getPublicShareDetail: async (shareId: string, token: string) => {
-    const response = await fetch(
-      `/api/backend/conversation/shared-chats/public/${shareId}/${token}`,
-      {
-        method: 'GET',
-        headers: {
-          Accept: 'application/json',
-        },
-      }
-    );
-    if (!response.ok) throw new Error('Shared chat not found or expired');
-    return await response.json();
+    try {
+      // Dùng chung apiHelper để tận dụng logic bắt lỗi và lấy data
+      return await apiHelper.get<any>(
+        `/api/backend/conversation/shared-chats/public/${shareId}/${token}`
+      );
+    } catch (error) {
+      throw new Error('Shared chat not found or expired');
+    }
   },
 
-  revokeShare: async (shareId: string) => {
-    await apiClient.delete(`/conversation/shared-chats/${shareId}`);
+  revokeShare: (shareId: string) => {
+    return apiHelper.delete<void>(`/conversation/shared-chats/${shareId}`);
   },
 };

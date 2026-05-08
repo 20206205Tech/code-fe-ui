@@ -1,4 +1,4 @@
-import apiClient from '@/lib/api-client';
+import { apiHelper } from '@/lib/api-helper';
 
 export interface Plan {
   id: string;
@@ -18,7 +18,7 @@ export interface CreatePlanRequestDto {
 
 export interface PurchaseSubscriptionRequestDto {
   plan_id: string;
-  provider: string; // e.g. 'vnpay', 'momo', etc.
+  provider: string;
 }
 
 export interface Transaction {
@@ -42,67 +42,51 @@ export interface Subscription {
 }
 
 export const paymentService = {
-  // Plans
-  getPlans: async (skip: number = 0, limit: number = 10): Promise<Plan[]> => {
-    const response = await apiClient.get('/payment/plans', {
-      params: { skip, limit },
-    });
-    // Trích xuất data từ wrapper { success, message, data } nếu có,
-    // hoặc trả về trực tiếp nếu response.data là mảng
-    return Array.isArray(response.data)
-      ? response.data
-      : response.data.data || [];
+  getPlans: (skip: number = 0, limit: number = 10): Promise<Plan[]> => {
+    return apiHelper.get<Plan[]>('/payment/plans', { params: { skip, limit } });
   },
 
-  getPlanDetail: async (planId: string): Promise<Plan> => {
-    const response = await apiClient.get(`/payment/plans/${planId}`);
-    return response.data.data || response.data;
+  getPlanDetail: (planId: string): Promise<Plan> => {
+    return apiHelper.get<Plan>(`/payment/plans/${planId}`);
   },
 
-  createPlan: async (data: CreatePlanRequestDto): Promise<Plan> => {
-    const response = await apiClient.post('/payment/plans', data);
-    return response.data.data || response.data;
+  createPlan: (data: CreatePlanRequestDto): Promise<Plan> => {
+    return apiHelper.post<Plan>('/payment/plans', data);
   },
 
-  deletePlan: async (planId: string): Promise<void> => {
-    await apiClient.delete(`/payment/plans/${planId}`);
+  deletePlan: (planId: string): Promise<void> => {
+    return apiHelper.delete<void>(`/payment/plans/${planId}`);
   },
 
-  // Subscriptions
-  purchaseSubscription: async (
+  purchaseSubscription: (
     data: PurchaseSubscriptionRequestDto
   ): Promise<{ payment_url: string }> => {
-    const response = await apiClient.post(
+    return apiHelper.post<{ payment_url: string }>(
       '/payment/subscriptions/purchase',
       data
     );
-    return response.data.data || response.data;
   },
 
   getMySubscription: async (): Promise<Subscription | null> => {
     try {
-      const response = await apiClient.get('/payment/subscriptions/me');
-      return response.data.data || response.data;
+      return await apiHelper.get<Subscription>('/payment/subscriptions/me');
     } catch (error: any) {
-      if (error.response?.status === 404) return null;
+      if (error.message.includes('404')) return null;
       throw error;
     }
   },
 
-  getTransactionHistory: async (
+  getTransactionHistory: (
     skip: number = 0,
     limit: number = 10
   ): Promise<Transaction[]> => {
-    const response = await apiClient.get('/payment/subscriptions/history', {
+    return apiHelper.get<Transaction[]>('/payment/subscriptions/history', {
       params: { skip, limit },
     });
-    return Array.isArray(response.data)
-      ? response.data
-      : response.data.data || [];
   },
 
-  manualActivate: async (transactionId: string): Promise<void> => {
-    await apiClient.post(
+  manualActivate: (transactionId: string): Promise<void> => {
+    return apiHelper.post<void>(
       `/payment/subscriptions/manual-activate/${transactionId}`
     );
   },

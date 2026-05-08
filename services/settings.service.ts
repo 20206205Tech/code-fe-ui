@@ -1,4 +1,4 @@
-import apiClient from '@/lib/api-client';
+import { apiHelper } from '@/lib/api-helper';
 
 export interface SettingItem {
   key: string;
@@ -6,37 +6,18 @@ export interface SettingItem {
 }
 
 export const settingsService = {
-  getSettings: async (accessToken: string): Promise<SettingItem[]> => {
-    try {
-      const response = await apiClient.get('/settings', {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-      return response.data;
-    } catch (error: any) {
-      const errorData = error.response?.data || {};
-      throw new Error(
-        `Failed to fetch settings: ${errorData.message || error.message}`
-      );
-    }
+  getSettings: (accessToken: string): Promise<SettingItem[]> => {
+    return apiHelper.get<SettingItem[]>('/settings', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
   },
 
-  updateSettings: async (
+  updateSettings: (
     accessToken: string,
     settings: SettingItem[]
   ): Promise<void> => {
-    try {
-      await apiClient.post('/settings', settings, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-    } catch (error: any) {
-      const errorData = error.response?.data || {};
-      throw new Error(
-        `Failed to update settings: ${errorData.message || error.message}`
-      );
-    }
+    return apiHelper.post<void>('/settings', settings, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
   },
 };
