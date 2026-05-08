@@ -19,7 +19,7 @@ export interface CreatePlanRequestDto {
 
 export interface PurchaseSubscriptionRequestDto {
   plan_id: string;
-  provider: string;
+  redirect_url: string;
 }
 
 export interface Transaction {
@@ -34,12 +34,17 @@ export interface Transaction {
 }
 
 export interface Subscription {
-  id: string;
-  user_id: string;
-  plan_id: string;
-  status: 'active' | 'expired' | 'cancelled';
-  start_date: string;
-  end_date: string;
+  subscription: {
+    id: string;
+    user_id: string;
+    plan_id: string;
+    status: 'active' | 'expired' | 'cancelled';
+    start_date: string;
+    end_date: string;
+    created_at: string;
+  };
+  has_active_subscription: boolean;
+  days_remaining: number;
 }
 
 export const paymentService = {
@@ -75,7 +80,7 @@ export const paymentService = {
   getMySubscription: async (): Promise<Subscription | null> => {
     try {
       return await apiHelper.get<Subscription>(
-        `/${CODE_PAYMENT_SERVICE_NAME}/subscriptions/me`
+        `/${CODE_PAYMENT_SERVICE_NAME}/subscriptions`
       );
     } catch (error: any) {
       if (error.message.includes('404')) return null;

@@ -31,9 +31,9 @@ interface Message {
 
 const EXAMPLE_QUESTIONS = [
   'Xin chào. Bạn có khỏe không?',
-  // 'Tóm tắt nội dung của văn bản 009/SLT.',
+  'Tóm tắt nội dung của văn bản 009/SLT.',
   'Về quê họ hàng chơi có phải đăng ký tạm trú không?',
-  'Quy định về xin giấy phép lao động cho người nước ngoài?',
+  // 'Quy định về xin giấy phép lao động cho người nước ngoài?',
 ];
 
 function ChatContent() {

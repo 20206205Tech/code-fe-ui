@@ -33,7 +33,7 @@ export function ChatInput({ onSend, isLoading = false }: ChatInputProps) {
   const [message, setMessage] = useState('');
   const [isListening, setIsListening] = useState(false);
   const { settings } = useSettings();
-  const { subscription, user } = useAuth() as any; // Cast as any if not in type yet
+  const { subscription, user } = useAuth();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
@@ -43,7 +43,8 @@ export function ChatInput({ onSend, isLoading = false }: ChatInputProps) {
   const [docs, setDocs] = useState<DocumentInfo[]>([]);
   const pollingIntervals = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
-  const isVip = subscription?.status === 'active';
+  const isVip = subscription?.has_active_subscription === true;
+
   const isProcessing =
     isUploading ||
     docs.some((d) => d.status !== 'COMPLETED' && d.status !== 'FAILED');

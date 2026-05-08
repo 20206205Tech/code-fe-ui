@@ -20,7 +20,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export function Sidebar() {
-  const { user, logout } = useAuth();
+  const { user, logout, subscription } = useAuth();
 
   // Kiểm tra role an toàn từ memory
   const isAdmin = user?.role === 'admin';
@@ -201,31 +201,6 @@ export function Sidebar() {
               </Button>
             </Link>
           )}
-
-          {/* {user && (
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800 mb-3">
-              {user.avatar ? (
-                <img
-                  src={user.avatar}
-                  alt={user.name}
-                  className="w-10 h-10 rounded-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
-                  {user.name.charAt(0).toUpperCase()}
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-                  {user.name}
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                  {user.email}
-                </p>
-              </div>
-            </div>
-          )} */}
 
           {isAdmin && (
             <>

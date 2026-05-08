@@ -52,8 +52,7 @@ export default function PlansList() {
       setIsPurchasing(plan.id);
       const response = await paymentService.purchaseSubscription({
         plan_id: plan.id,
-        // provider: 'vnpay', // Defaulting to VNPay as requested
-        provider: 'momo', // Defaulting to VNPay as requested
+        redirect_url: window.location.origin + '/payment/success',
       });
 
       if (response.payment_url) {
@@ -92,7 +91,7 @@ export default function PlansList() {
 
   return (
     <div className="container mx-auto py-4 px-0">
-      <div className="text-center mb-12">
+      {/* <div className="text-center mb-12">
         <h3 className="text-3xl font-bold tracking-tight sm:text-4xl mb-3 text-slate-900 dark:text-white">
           Nâng cấp tài khoản AI
         </h3>
@@ -100,7 +99,7 @@ export default function PlansList() {
           Mở khóa toàn bộ sức mạnh của trợ lý AI với tốc độ xử lý ưu tiên và các
           tính năng độc quyền.
         </p>
-      </div>
+      </div> */}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
         {plans.map((plan) => {

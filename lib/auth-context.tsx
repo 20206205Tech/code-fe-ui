@@ -13,7 +13,6 @@ import {
   TOKEN_STORAGE_KEY,
   USER_STORAGE_KEY,
   USER_SETTINGS_STORAGE_KEY,
-  USER_SUBSCRIPTION_KEY,
 } from '../config/app.config';
 import { authService } from '../services/auth.service';
 import { useSettings } from './settings-context';
@@ -51,6 +50,7 @@ interface AuthContextType {
   logout: () => void;
   updateUser: (user: Partial<User>) => Promise<void>;
   refreshToken: () => Promise<void>;
+  syncSubscription: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -81,15 +81,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    const storedSub = localStorage.getItem(USER_SUBSCRIPTION_KEY);
-    if (storedSub) {
-      try {
-        setSubscription(JSON.parse(storedSub));
-      } catch (error) {
-        console.error('Failed to parse subscription:', error);
-      }
-    }
-
     // Always fetch latest subscription if authenticated
     if (storedToken?.access_token) {
       syncSubscription();
@@ -102,11 +93,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const sub = await paymentService.getMySubscription();
       setSubscription(sub);
-      if (sub) {
-        localStorage.setItem(USER_SUBSCRIPTION_KEY, JSON.stringify(sub));
-      } else {
-        localStorage.removeItem(USER_SUBSCRIPTION_KEY);
-      }
     } catch (error) {
       console.error('Failed to sync subscription:', error);
     }
@@ -185,7 +171,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     localStorage.removeItem(USER_STORAGE_KEY);
     localStorage.removeItem(USER_SETTINGS_STORAGE_KEY);
-    localStorage.removeItem(USER_SUBSCRIPTION_KEY);
 
     cookieHelper.remove(TOKEN_STORAGE_KEY);
     setSubscription(null);
@@ -268,6 +253,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logout,
     updateUser,
     refreshToken,
+    syncSubscription,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
