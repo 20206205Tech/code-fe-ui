@@ -2,7 +2,6 @@
 
 import PlansAdmin from '@/components/payment/PlansAdmin';
 import { Sidebar } from '@/components/sidebar';
-import { UserMenuHeader } from '@/components/user-menu-header';
 import { Suspense } from 'react';
 
 export default function AdminPlansPage() {
@@ -16,8 +15,7 @@ export default function AdminPlansPage() {
         <Sidebar />
       </Suspense>
       <div className="flex-1 flex flex-col md:ml-0 overflow-hidden">
-        <UserMenuHeader />
-        <main className="flex-1 overflow-y-auto pt-16 p-4 md:p-8">
+        <main className="flex-1 overflow-y-auto pt-4 p-4 md:p-8">
           <div className="max-w-6xl mx-auto">
             <PlansAdmin />
           </div>

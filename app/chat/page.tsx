@@ -1,6 +1,7 @@
 'use client';
 
 import { BookmarkModal } from '@/components/bookmark-modal';
+import { cn } from '@/lib/utils';
 import { ChatInput } from '@/components/chat-input';
 import { ChatMessage } from '@/components/chat-message';
 import { ShareModal } from '@/components/share-modal';
@@ -12,12 +13,20 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { UserMenuHeader } from '@/components/user-menu-header';
+import { ChatHeader } from '@/components/chat-header';
 import { useAuth } from '@/lib/auth-context';
 import { useSettings } from '@/lib/settings-context';
 import { conversationService } from '@/services/conversation.service';
 import { chatbotService } from '@/services/chatbot.service';
-import { Bookmark, Loader2, MessageSquare, Share2 } from 'lucide-react';
+import {
+  Bookmark,
+  Loader2,
+  MessageSquare,
+  Share2,
+  Zap,
+  Brain,
+} from 'lucide-react';
+import { toast } from 'sonner';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useRef, useState } from 'react';
 
@@ -51,6 +60,9 @@ function ChatContent() {
   const [currentStatus, setCurrentStatus] = useState<string | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isBookmarkModalOpen, setIsBookmarkModalOpen] = useState(false);
+
+  const [useReasoning, setUseReasoning] = useState(false);
+  const isVip = useAuth().subscription?.has_active_subscription === true;
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -130,6 +142,7 @@ function ChatContent() {
         chatId,
         message,
         docIds || [],
+        useReasoning,
         (update) => {
           if (update.type === 'status') {
             setCurrentStatus(update.message);
@@ -207,7 +220,62 @@ function ChatContent() {
 
       <div className="flex-1 flex flex-col md:ml-0">
         {/* Header with Actions */}
-        <UserMenuHeader>
+        <ChatHeader
+          leftContent={
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
+              <button
+                onClick={() => setUseReasoning(false)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all',
+                  !useReasoning
+                    ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                )}
+              >
+                <Zap
+                  size={14}
+                  className={!useReasoning ? 'fill-blue-500' : ''}
+                />
+                Cơ bản
+              </button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => {
+                        if (isVip) {
+                          setUseReasoning(true);
+                        } else {
+                          toast.info(
+                            'Vui lòng nâng cấp gói cước để sử dụng tính năng này.'
+                          );
+                        }
+                      }}
+                      className={cn(
+                        'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all',
+                        useReasoning
+                          ? 'bg-white dark:bg-slate-700 text-purple-600 dark:text-purple-400 shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300',
+                        !isVip && 'opacity-60'
+                      )}
+                    >
+                      <Brain
+                        size={14}
+                        className={useReasoning ? 'fill-purple-500' : ''}
+                      />
+                      Suy luận
+                    </button>
+                  </TooltipTrigger>
+                  {!isVip && (
+                    <TooltipContent side="bottom">
+                      <p className="text-xs">Nâng cấp VIP để sử dụng</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          }
+        >
           {activeChatId && messages.length > 0 && (
             <div className="flex items-center gap-1 mr-2">
               <TooltipProvider>
@@ -245,7 +313,7 @@ function ChatContent() {
               <div className="w-px h-6 bg-slate-200 dark:bg-slate-800 mx-1" />
             </div>
           )}
-        </UserMenuHeader>
+        </ChatHeader>
 
         {/* Messages Container */}
         <main className="flex-1 overflow-y-auto pt-16 pb-24">

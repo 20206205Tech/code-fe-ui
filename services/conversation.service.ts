@@ -44,6 +44,7 @@ export const conversationService = {
     chatId: string,
     query: string,
     fileIds: string[],
+    useReasoning: boolean,
     onUpdate: (update: StreamUpdate) => void
   ) => {
     const token = getAuthToken();
@@ -55,7 +56,12 @@ export const conversationService = {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ chat_id: chatId, query, file_ids: fileIds }),
+        body: JSON.stringify({
+          chat_id: chatId,
+          query,
+          file_ids: fileIds,
+          use_reasoning: useReasoning,
+        }),
       }
     );
 

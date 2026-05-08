@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/lib/auth-context';
+import { cn } from '@/lib/utils';
 import { LogOut, Settings, User } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -31,39 +32,35 @@ export function UserMenu() {
   if (!user) return null;
 
   return (
-    <div className="relative" ref={menuRef}>
+    <div className="relative w-full" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+        className="flex items-center gap-3 p-2 rounded-xl transition-all w-full group bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700"
       >
         {user.avatar ? (
           <img
             src={user.avatar}
             alt={user.name}
-            className="w-8 h-8 rounded-full object-cover"
+            className="w-10 h-10 rounded-full object-cover border-2 border-white dark:border-slate-700 shadow-sm"
             referrerPolicy="no-referrer"
           />
         ) : (
-          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold">
+          <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold shadow-sm text-base">
             {user.name.charAt(0).toUpperCase()}
           </div>
         )}
-        <span className="text-sm font-medium text-slate-900 dark:text-white hidden sm:block">
-          {user.name}
-        </span>
+        <div className="flex-1 min-w-0 text-left">
+          <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
+            {user.name}
+          </p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+            {user.email}
+          </p>
+        </div>
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 z-50">
-          <div className="p-3 border-b border-slate-200 dark:border-slate-700">
-            <p className="text-sm font-semibold text-slate-900 dark:text-white">
-              {user.name}
-            </p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {user.email}
-            </p>
-          </div>
-
+        <div className="absolute bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 z-50 animate-in fade-in slide-in-from-left-2 duration-200 w-56 left-[calc(100%+0.5rem)] bottom-0">
           <div className="p-2">
             <Link
               href="/profile"
@@ -71,7 +68,7 @@ export function UserMenu() {
               onClick={() => setIsOpen(false)}
             >
               <User size={16} />
-              Profile
+              Trang cá nhân
             </Link>
 
             <Link
@@ -80,7 +77,7 @@ export function UserMenu() {
               onClick={() => setIsOpen(false)}
             >
               <Settings size={16} />
-              Settings
+              Cài đặt
             </Link>
           </div>
 
@@ -90,7 +87,7 @@ export function UserMenu() {
               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-950 transition-colors text-red-600 dark:text-red-400 text-sm"
             >
               <LogOut size={16} />
-              Logout
+              Đăng xuất
             </button>
           </div>
         </div>

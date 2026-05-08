@@ -3,7 +3,6 @@
 import PlansList from '@/components/payment/PlansList';
 import HistoryList from '@/components/payment/HistoryList';
 import { Sidebar } from '@/components/sidebar';
-import { UserMenuHeader } from '@/components/user-menu-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CreditCard, History } from 'lucide-react';
 import { Suspense } from 'react';
@@ -19,9 +18,7 @@ export default function PlansPage() {
         <Sidebar />
       </Suspense>
       <div className="flex-1 flex flex-col md:ml-0 overflow-hidden relative">
-        <UserMenuHeader />
-
-        <main className="flex-1 overflow-y-auto pt-24 pb-12 px-4 md:px-8">
+        <main className="flex-1 overflow-y-auto pt-8 pb-12 px-4 md:px-8">
           <div className="max-w-5xl mx-auto">
             <Tabs defaultValue="plans" className="w-full space-y-8">
               <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">

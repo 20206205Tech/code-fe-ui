@@ -3,7 +3,6 @@
 import { Sidebar } from '@/components/sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { UserMenuHeader } from '@/components/user-menu-header';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth-context';
 import { ArrowLeft, Upload } from 'lucide-react';
@@ -51,7 +50,6 @@ export default function ProfilePage() {
         <Sidebar />
       </Suspense>
       <div className="flex-1 flex flex-col">
-        <UserMenuHeader />
         <main className="flex-1 flex items-center justify-center p-4">
           <div className="w-full max-w-md space-y-8 flex flex-col items-center">
             {/* Nút quay lại & Tiêu đề */}

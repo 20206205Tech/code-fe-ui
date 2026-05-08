@@ -12,15 +12,26 @@ import {
   LogOut,
   Menu,
   Plus,
+  Settings,
   Sparkles,
+  User,
   Workflow,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
+import { UserMenu } from './user-menu';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export function Sidebar() {
-  const { user, logout, subscription } = useAuth();
+  const { user, logout } = useAuth();
 
   // Kiểm tra role an toàn từ memory
   const isAdmin = user?.role === 'admin';
@@ -202,8 +213,23 @@ export function Sidebar() {
             </Link>
           )}
 
+          {user && (
+            <div className="mt-2">
+              <UserMenu />
+            </div>
+          )}
+
           {isAdmin && (
             <>
+              <Link href="/admin/plans" onClick={() => setIsOpen(false)}>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  <CreditCard size={18} className="mr-2" />
+                  Quản lý gói cước
+                </Button>
+              </Link>
               <Link
                 href="/admin/data-pipeline"
                 onClick={() => setIsOpen(false)}
@@ -216,46 +242,8 @@ export function Sidebar() {
                   Data Pipeline
                 </Button>
               </Link>
-              <Link href="/admin/plans" onClick={() => setIsOpen(false)}>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                >
-                  <CreditCard size={18} className="mr-2" />
-                  Quản lý gói cước
-                </Button>
-              </Link>
             </>
           )}
-
-          {/* <Link href="/profile" onClick={() => setIsOpen(false)}>
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-            >
-              <User size={18} className="mr-2" />
-              Profile
-            </Button>
-          </Link> */}
-
-          {/* <Link href="/settings" onClick={() => setIsOpen(false)}>
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-            >
-              <Settings size={18} className="mr-2" />
-              Settings
-            </Button>
-          </Link> */}
-
-          <Button
-            onClick={handleLogout}
-            variant="ghost"
-            className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
-          >
-            <LogOut size={18} className="mr-2" />
-            Logout
-          </Button>
         </div>
       </aside>
     </>

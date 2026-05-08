@@ -38,7 +38,6 @@ export function ChatInput({ onSend, isLoading = false }: ChatInputProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
 
-  // Document states
   const [isUploading, setIsUploading] = useState(false);
   const [docs, setDocs] = useState<DocumentInfo[]>([]);
   const pollingIntervals = useRef<Map<string, NodeJS.Timeout>>(new Map());

@@ -1,10 +1,8 @@
 'use client';
 
 import { Sidebar } from '@/components/sidebar';
-import { UserMenuHeader } from '@/components/user-menu-header';
 import SharesManager from '@/components/shares/SharesManager';
 import { Suspense } from 'react';
-import { Loader2 } from 'lucide-react';
 
 export default function SharesPage() {
   return (
@@ -18,9 +16,7 @@ export default function SharesPage() {
       </Suspense>
 
       <div className="flex-1 flex flex-col md:ml-0 overflow-hidden">
-        <UserMenuHeader />
-
-        <main className="flex-1 overflow-y-auto pt-16 p-4 md:p-8">
+        <main className="flex-1 overflow-y-auto pt-4 p-4 md:p-8">
           <div className="max-w-6xl mx-auto h-full">
             <SharesManager />
           </div>

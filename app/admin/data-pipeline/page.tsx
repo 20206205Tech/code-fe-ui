@@ -2,7 +2,6 @@
 
 import { Sidebar } from '@/components/sidebar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { UserMenuHeader } from '@/components/user-menu-header';
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
@@ -187,8 +186,7 @@ export default function AdminDataPipelinePage() {
         <Sidebar />
       </Suspense>
       <div className="flex-1 flex flex-col md:ml-0 overflow-hidden">
-        <UserMenuHeader />
-        <main className="flex-1 overflow-y-auto pt-16 p-4 md:p-8">
+        <main className="flex-1 overflow-y-auto pt-4 p-4 md:p-8">
           <div className="max-w-7xl mx-auto space-y-6">
             <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-6">
               Data Pipeline Dashboard
