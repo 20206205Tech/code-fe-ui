@@ -11,6 +11,8 @@ import {
   CheckCircle2,
   X,
   FileText,
+  Trash2,
+  Check,
 } from 'lucide-react';
 import { useSettings } from '@/lib/settings-context';
 import { useAuth } from '@/lib/auth-context';
@@ -32,8 +34,12 @@ interface ChatInputProps {
 export function ChatInput({ onSend, isLoading = false }: ChatInputProps) {
   const [message, setMessage] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [isVoiceMode, setIsVoiceMode] = useState(false);
+  const [tempTranscript, setTempTranscript] = useState('');
+
   const { settings } = useSettings();
   const { subscription, user } = useAuth();
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
@@ -71,23 +77,12 @@ export function ChatInput({ onSend, isLoading = false }: ChatInputProps) {
 
       recognition.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
-        if (settings.autoSendVoice) {
-          onSend(
-            transcript,
-            docs.map((d) => d.id)
-          );
-          setMessage('');
-        } else {
-          setMessage((prev) => {
-            const newMsg = prev ? `${prev.trim()} ${transcript}` : transcript;
-            return newMsg;
-          });
-        }
+        setTempTranscript(transcript);
       };
 
       recognitionRef.current = recognition;
     }
-  }, [onSend, settings.autoSendVoice, docs]);
+  }, [onSend, docs]);
 
   const startPolling = (docId: string) => {
     // Clear existing interval if any for this specific ID
@@ -179,11 +174,31 @@ export function ChatInput({ onSend, isLoading = false }: ChatInputProps) {
       recognitionRef.current.stop();
     } else {
       try {
+        setIsVoiceMode(true);
+        setTempTranscript('');
         recognitionRef.current.start();
       } catch (e) {
         console.error('Failed to start recognition:', e);
       }
     }
+  };
+
+  const cancelVoice = () => {
+    if (isListening) recognitionRef.current.stop();
+    setIsVoiceMode(false);
+    setTempTranscript('');
+  };
+
+  const confirmVoice = () => {
+    if (isListening) recognitionRef.current.stop();
+    if (tempTranscript) {
+      setMessage((prev) => {
+        const trimmed = prev.trim();
+        return trimmed ? `${trimmed} ${tempTranscript}` : tempTranscript;
+      });
+    }
+    setIsVoiceMode(false);
+    setTempTranscript('');
   };
 
   useEffect(() => {
@@ -270,92 +285,142 @@ export function ChatInput({ onSend, isLoading = false }: ChatInputProps) {
 
       <div className="flex gap-3 items-end">
         <div className="relative flex-1 flex items-end bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 focus-within:border-blue-600 dark:focus-within:border-blue-500 transition-colors">
-          <textarea
-            ref={textareaRef}
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Nhập tin nhắn..."
-            disabled={
-              isLoading ||
-              (isProcessing && docs.every((d) => d.status !== 'COMPLETED'))
-            }
-            className="flex-1 px-4 py-3 bg-transparent text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none resize-none"
-            rows={1}
-          />
-          <div className="pb-2 pr-2 flex items-center gap-1">
-            {/* File Upload Button (Always shown, but muted/disabled for non-VIP) */}
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              className="hidden"
-              accept=".pdf,.doc,.docx,.txt"
-              multiple
-            />
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      if (isVip) {
-                        fileInputRef.current?.click();
-                      } else {
-                        toast.info(
-                          'Vui lòng nâng cấp gói cước để sử dụng tính năng này.'
-                        );
-                      }
-                    }}
-                    disabled={isLoading || isProcessing}
-                    className={cn(
-                      'rounded-full h-9 w-9 transition-all duration-300',
-                      isVip
-                        ? 'text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20'
-                        : 'text-slate-400 dark:text-slate-600 opacity-40 hover:opacity-100'
-                    )}
-                  >
-                    <Paperclip size={18} />
-                  </Button>
-                </TooltipTrigger>
-                {!isVip && (
-                  <TooltipContent side="top">
-                    <p className="text-xs">Nâng cấp VIP để tải tài liệu</p>
-                  </TooltipContent>
-                )}
-              </Tooltip>
-            </TooltipProvider>
+          {isVoiceMode ? (
+            <div className="flex-1 flex items-center justify-between px-4 py-3 min-h-[50px]">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={cancelVoice}
+                className="text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full h-9 w-9"
+              >
+                <Trash2 size={18} />
+              </Button>
 
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={toggleListening}
-              disabled={isLoading || isProcessing}
-              className={`rounded-full h-9 w-9 transition-all duration-300 ${
-                isListening
-                  ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 animate-pulse'
-                  : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20'
-              }`}
-            >
-              {isListening ? <MicOff size={18} /> : <Mic size={18} />}
-            </Button>
-            <Button
-              type="submit"
-              variant="ghost"
-              size="icon"
-              disabled={!canSend}
-              className="rounded-full h-9 w-9 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-300 disabled:opacity-30 flex-shrink-0"
-            >
-              {isLoading ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                <Send size={18} />
-              )}
-            </Button>
-          </div>
+              <div className="flex-1 flex flex-col items-center px-4">
+                {isListening ? (
+                  <div className="flex items-center gap-1.5 h-6">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div
+                        key={i}
+                        className="w-1 bg-red-500 rounded-full animate-voice-bar"
+                        style={{
+                          animationDelay: `${i * 0.1}s`,
+                          height: '4px',
+                        }}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    {tempTranscript ? 'Đã nhận diện' : 'Đang chờ...'}
+                  </p>
+                )}
+                <p className="text-sm text-slate-900 dark:text-white font-medium line-clamp-1 text-center">
+                  {tempTranscript || (isListening ? 'Đang nghe...' : '')}
+                </p>
+              </div>
+
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={confirmVoice}
+                className="text-slate-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-full h-9 w-9"
+              >
+                <Check size={20} />
+              </Button>
+            </div>
+          ) : (
+            <>
+              <textarea
+                ref={textareaRef}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Nhập tin nhắn..."
+                disabled={
+                  isLoading ||
+                  (isProcessing && docs.every((d) => d.status !== 'COMPLETED'))
+                }
+                className="flex-1 px-4 py-3 bg-transparent text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none resize-none"
+                rows={1}
+              />
+              <div className="pb-2 pr-2 flex items-center gap-1">
+                {/* File Upload Button (Always shown, but muted/disabled for non-VIP) */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  className="hidden"
+                  accept=".pdf,.doc,.docx,.txt"
+                  multiple
+                />
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          if (isVip) {
+                            fileInputRef.current?.click();
+                          } else {
+                            toast.info(
+                              'Vui lòng nâng cấp gói cước để sử dụng tính năng này.'
+                            );
+                          }
+                        }}
+                        disabled={isLoading || isProcessing}
+                        className={cn(
+                          'rounded-full h-9 w-9 transition-all duration-300',
+                          isVip
+                            ? 'text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                            : 'text-slate-400 dark:text-slate-600 opacity-40 hover:opacity-100'
+                        )}
+                      >
+                        <Paperclip size={18} />
+                      </Button>
+                    </TooltipTrigger>
+                    {!isVip && (
+                      <TooltipContent side="top">
+                        <p className="text-xs">Nâng cấp VIP để tải tài liệu</p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleListening}
+                  disabled={isLoading || isProcessing}
+                  className={`rounded-full h-9 w-9 transition-all duration-300 ${
+                    isListening
+                      ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 animate-pulse'
+                      : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                  }`}
+                >
+                  {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+                </Button>
+                <Button
+                  type="submit"
+                  variant="ghost"
+                  size="icon"
+                  disabled={!canSend}
+                  className="rounded-full h-9 w-9 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-300 disabled:opacity-30 flex-shrink-0"
+                >
+                  {isLoading ? (
+                    <Loader2 size={18} className="animate-spin" />
+                  ) : (
+                    <Send size={18} />
+                  )}
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </form>
