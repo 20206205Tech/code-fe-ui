@@ -1,27 +1,19 @@
 import { apiHelper } from '@/lib/api-helper';
 import { TOKEN_STORAGE_KEY } from '@/config/app.config';
+import {
+  API_GATEWAY_PREFIX,
+  CODE_CONVERSATION_SERVICE_NAME,
+} from '@/config/api.constants';
 import { cookieHelper } from '@/lib/cookie-helper';
-
-export interface ChatSession {
-  id: string;
-  title: string;
-  updated_at: string;
-}
-
-export interface ChatMessage {
-  id: string;
-  role: 'human' | 'ai';
-  content: string;
-  created_at: string;
-}
 
 export interface StreamUpdate {
   type: 'status' | 'content' | 'metadata';
   message: any;
 }
 
-const CONVERSATION_BASE = '/conversation/chats';
-const CHATBOT_BASE = '/chatbot/chats';
+const CONVERSATION_BASE = `/${CODE_CONVERSATION_SERVICE_NAME}/chats`;
+const BOOKMARK_BASE = `/${CODE_CONVERSATION_SERVICE_NAME}/bookmarks`;
+const SHARE_BASE = `/${CODE_CONVERSATION_SERVICE_NAME}/shared-chats`;
 
 const getAuthToken = () => {
   const storedToken = cookieHelper.get(TOKEN_STORAGE_KEY);
@@ -40,7 +32,8 @@ const getAuthToken = () => {
   return null;
 };
 
-export const chatService = {
+export const conversationService = {
+  // Chat methods
   startChat: () => {
     return apiHelper.post<{ chatId: string; createdAt: string }>(
       `${CONVERSATION_BASE}/start`
@@ -55,7 +48,7 @@ export const chatService = {
   ) => {
     const token = getAuthToken();
     const response = await fetch(
-      `/api/api-gateway${CONVERSATION_BASE}/stream`,
+      `${API_GATEWAY_PREFIX}${CONVERSATION_BASE}/stream`,
       {
         method: 'POST',
         headers: {
@@ -104,11 +97,58 @@ export const chatService = {
     return apiHelper.delete<void>(`${CONVERSATION_BASE}/${chatId}`);
   },
 
-  getHistory: () => {
-    return apiHelper.get<ChatSession[]>(`${CHATBOT_BASE}`);
+  // Bookmark methods
+  getBookmarkFolders: (skip = 0, limit = 100) => {
+    return apiHelper.get<any[]>(`${BOOKMARK_BASE}`, {
+      params: { skip, limit },
+    });
   },
 
-  getChatMessages: (chatId: string) => {
-    return apiHelper.get<ChatMessage[]>(`${CHATBOT_BASE}/${chatId}`);
+  createBookmarkFolder: (folderName: string) => {
+    return apiHelper.post<any>(`${BOOKMARK_BASE}`, { folderName });
+  },
+
+  addBookmarkItem: (folderId: string, chatId: string, note: string) => {
+    return apiHelper.put<any>(`${BOOKMARK_BASE}/${folderId}/item`, {
+      chatId,
+      note,
+    });
+  },
+
+  removeBookmarkItem: (folderId: string, chatId: string) => {
+    return apiHelper.delete<void>(
+      `${BOOKMARK_BASE}/${folderId}/item/${chatId}`
+    );
+  },
+
+  getBookmarkDetail: (folderId: string) => {
+    return apiHelper.get<any>(`${BOOKMARK_BASE}/${folderId}`);
+  },
+
+  // Share methods
+  generateShareLink: (chatId: string) => {
+    return apiHelper.post<{ shareId: string; token: string }>(`${SHARE_BASE}`, {
+      chat_id: chatId,
+    });
+  },
+
+  getMySharedChats: (skip = 0, limit = 100) => {
+    return apiHelper.get<any>(`${SHARE_BASE}/me`, {
+      params: { skip, limit },
+    });
+  },
+
+  getPublicShareDetail: async (shareId: string, token: string) => {
+    try {
+      return await apiHelper.get<any>(
+        `${SHARE_BASE}/public/${shareId}/${token}`
+      );
+    } catch (error) {
+      throw new Error('Shared chat not found or expired');
+    }
+  },
+
+  revokeShare: (shareId: string) => {
+    return apiHelper.delete<void>(`${SHARE_BASE}/${shareId}`);
   },
 };

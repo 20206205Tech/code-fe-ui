@@ -1,9 +1,10 @@
 import axios from 'axios';
 import { TOKEN_STORAGE_KEY } from '@/config/app.config';
+import { API_GATEWAY_PREFIX } from '@/config/api.constants';
 import { cookieHelper } from './cookie-helper';
 
 const apiClient = axios.create({
-  baseURL: '/api/api-gateway',
+  baseURL: API_GATEWAY_PREFIX,
   headers: {
     'Content-Type': 'application/json',
   },

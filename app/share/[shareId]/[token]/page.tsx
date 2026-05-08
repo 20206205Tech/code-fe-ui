@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { ChatMessage } from '@/components/chat-message';
-import { chatShareService } from '@/services/chat-share.service';
+import { conversationService } from '@/services/conversation.service';
 import { Loader2, AlertCircle, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -17,7 +17,7 @@ export default function PublicSharePage() {
   useEffect(() => {
     const loadDetail = async () => {
       try {
-        const response = await chatShareService.getPublicShareDetail(
+        const response = await conversationService.getPublicShareDetail(
           shareId,
           token
         );

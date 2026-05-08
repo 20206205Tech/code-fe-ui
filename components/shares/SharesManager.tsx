@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { chatShareService } from '@/services/chat-share.service';
+import { conversationService } from '@/services/conversation.service';
 import {
   AlertCircle,
   Check,
@@ -47,7 +47,7 @@ export default function SharesManager() {
   const loadShares = async () => {
     setIsLoading(true);
     try {
-      const data = await chatShareService.getMySharedChats(0, 100);
+      const data = await conversationService.getMySharedChats(0, 100);
       setShares(data.data || []);
     } catch (error) {
       console.error('Failed to load shares:', error);
@@ -78,7 +78,7 @@ export default function SharesManager() {
 
     setIsDeleting(true);
     try {
-      await chatShareService.revokeShare(deleteTarget.shareId);
+      await conversationService.revokeShare(deleteTarget.shareId);
       toast({
         title: 'Thành công',
         description: 'Đã thu hồi link chia sẻ',

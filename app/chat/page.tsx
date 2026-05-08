@@ -15,7 +15,8 @@ import {
 import { UserMenuHeader } from '@/components/user-menu-header';
 import { useAuth } from '@/lib/auth-context';
 import { useSettings } from '@/lib/settings-context';
-import { chatService } from '@/services/chat.service';
+import { conversationService } from '@/services/conversation.service';
+import { chatbotService } from '@/services/chatbot.service';
 import { Bookmark, Loader2, MessageSquare, Share2 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useRef, useState } from 'react';
@@ -73,7 +74,7 @@ function ChatContent() {
   const loadChatDetail = async (chatId: string) => {
     setIsLoading(true);
     try {
-      const history = await chatService.getChatMessages(chatId);
+      const history = await chatbotService.getChatMessages(chatId);
       const mappedMessages: Message[] = history.map((m) => ({
         role: m.role === 'human' ? 'user' : 'assistant',
         content: m.content,
@@ -108,7 +109,7 @@ function ChatContent() {
     try {
       // 1. Start chat if not exists
       if (!chatId) {
-        const session = await chatService.startChat();
+        const session = await conversationService.startChat();
         chatId = session.chatId;
         activeChatIdRef.current = chatId;
         setActiveChatId(chatId);
@@ -125,43 +126,48 @@ function ChatContent() {
       setMessages((prev) => [...prev, assistantMessage]);
 
       // 3. Stream chat
-      await chatService.streamChat(chatId, message, docIds || [], (update) => {
-        if (update.type === 'status') {
-          setCurrentStatus(update.message);
-        } else if (update.type === 'content') {
-          // Keep status visible during streaming unless metadata arrives
-          setMessages((prev) => {
-            if (prev.length === 0) return prev;
-            const newMessages = [...prev];
-            const lastIdx = newMessages.length - 1;
-            const lastMsg = newMessages[lastIdx];
-            if (lastMsg && lastMsg.role === 'assistant') {
-              newMessages[lastIdx] = {
-                ...lastMsg,
-                content: (lastMsg.content || '') + update.message,
-              };
-            }
-            return newMessages;
-          });
-        } else if (update.type === 'metadata') {
-          setCurrentStatus(null);
-          setMessages((prev) => {
-            if (prev.length === 0) return prev;
-            const newMessages = [...prev];
-            const lastIdx = newMessages.length - 1;
-            const lastMsg = newMessages[lastIdx];
-            if (lastMsg && lastMsg.role === 'assistant') {
-              newMessages[lastIdx] = {
-                ...lastMsg,
-                isStreaming: false,
-                sources: update.message.sources,
-                content: update.message.full_answer || lastMsg.content,
-              };
-            }
-            return newMessages;
-          });
+      await conversationService.streamChat(
+        chatId,
+        message,
+        docIds || [],
+        (update) => {
+          if (update.type === 'status') {
+            setCurrentStatus(update.message);
+          } else if (update.type === 'content') {
+            // Keep status visible during streaming unless metadata arrives
+            setMessages((prev) => {
+              if (prev.length === 0) return prev;
+              const newMessages = [...prev];
+              const lastIdx = newMessages.length - 1;
+              const lastMsg = newMessages[lastIdx];
+              if (lastMsg && lastMsg.role === 'assistant') {
+                newMessages[lastIdx] = {
+                  ...lastMsg,
+                  content: (lastMsg.content || '') + update.message,
+                };
+              }
+              return newMessages;
+            });
+          } else if (update.type === 'metadata') {
+            setCurrentStatus(null);
+            setMessages((prev) => {
+              if (prev.length === 0) return prev;
+              const newMessages = [...prev];
+              const lastIdx = newMessages.length - 1;
+              const lastMsg = newMessages[lastIdx];
+              if (lastMsg && lastMsg.role === 'assistant') {
+                newMessages[lastIdx] = {
+                  ...lastMsg,
+                  isStreaming: false,
+                  sources: update.message.sources,
+                  content: update.message.full_answer || lastMsg.content,
+                };
+              }
+              return newMessages;
+            });
+          }
         }
-      });
+      );
 
       // Fallback: Ensure the last message is no longer in "streaming" state
       // This handles cases where the metadata packet might be missing

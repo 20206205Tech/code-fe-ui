@@ -20,7 +20,6 @@ import { useSettings } from './settings-context';
 import { cookieHelper } from './cookie-helper';
 import { paymentService, Subscription } from '../services/payment.service';
 
-import { profileService } from '../services/profile.service';
 import { decodeJwtPayload, getUserRoleFromToken } from './token-helper';
 
 export interface AuthToken {
@@ -148,7 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const userId = payload.sub;
         const userRole = payload.app_metadata?.role || 'user';
 
-        const dbProfile = await profileService.getProfile(userId, access_token);
+        const dbProfile = await authService.getProfile(userId, access_token);
 
         const authUser: User = {
           id: userId,
@@ -226,7 +225,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Xử lý upload ảnh nếu có
       if (userData.avatarFile) {
-        const publicUrl = await profileService.uploadAvatar(
+        const publicUrl = await authService.uploadAvatar(
           user.id,
           tokens.access_token,
           userData.avatarFile
@@ -240,7 +239,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Gửi PATCH lên DB profiles
-      const newProfile = await profileService.updateProfile(
+      const newProfile = await authService.updateProfile(
         user.id,
         tokens.access_token,
         updatedData

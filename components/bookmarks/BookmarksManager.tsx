@@ -11,7 +11,7 @@ import {
   Search,
   BookMarked,
 } from 'lucide-react';
-import { chatBookmarkService } from '@/services/chat-bookmark.service';
+import { conversationService } from '@/services/conversation.service';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -47,11 +47,11 @@ export default function BookmarksManager() {
   const fetchBookmarks = async () => {
     try {
       setIsLoading(true);
-      const folderList = await chatBookmarkService.getBookmarkFolders();
+      const folderList = await conversationService.getBookmarkFolders();
 
       const detailedFolders = await Promise.all(
         folderList.map(async (f: any) => {
-          const detail = await chatBookmarkService.getBookmarkDetail(f.id);
+          const detail = await conversationService.getBookmarkDetail(f.id);
           return {
             id: f.id,
             folderName: f.folderName,
@@ -79,7 +79,7 @@ export default function BookmarksManager() {
     if (!confirm('Bạn có chắc chắn muốn xóa bookmark này?')) return;
 
     try {
-      await chatBookmarkService.removeBookmarkItem(folderId, chatId);
+      await conversationService.removeBookmarkItem(folderId, chatId);
       toast.success('Đã xóa bookmark');
 
       if (selectedItem?.chatId === chatId) {

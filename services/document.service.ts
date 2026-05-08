@@ -1,4 +1,5 @@
 import { apiHelper } from '@/lib/api-helper';
+import { CODE_DOCUMENT_SERVICE_NAME } from '@/config/api.constants';
 
 export type DocumentStatus = 'UPLOADED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
 
@@ -12,8 +13,6 @@ export interface DocumentInfo {
   has_summary: boolean;
 }
 
-const DOCUMENT_API_BASE = '/document';
-
 export const documentService = {
   uploadDocument: (file: File) => {
     const formData = new FormData();
@@ -23,14 +22,14 @@ export const documentService = {
       doc_id: string;
       filename: string;
       status: 'UPLOADED';
-    }>(`${DOCUMENT_API_BASE}/documents/upload`, formData, {
+    }>(`/${CODE_DOCUMENT_SERVICE_NAME}/documents/upload`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
 
   getDocumentStatus: (docId: string) => {
     return apiHelper.get<DocumentInfo>(
-      `${DOCUMENT_API_BASE}/documents/${docId}`
+      `/${CODE_DOCUMENT_SERVICE_NAME}/documents/${docId}`
     );
   },
 };

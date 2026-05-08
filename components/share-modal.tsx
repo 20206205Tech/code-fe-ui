@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { chatShareService } from '@/services/chat-share.service';
+import { conversationService } from '@/services/conversation.service';
 import { AlertCircle, Check, Copy, Loader2, Share2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -53,8 +53,8 @@ export function ShareModal({ isOpen, onClose, chatId }: ShareModalProps) {
     setErrorMessage('');
 
     try {
-      const data = await chatShareService.generateShareLink(chatId);
-      const fullUrl = `${window.location.origin}${data.shareUrl}`;
+      const data = await conversationService.generateShareLink(chatId);
+      const fullUrl = `${window.location.origin}/share/${data.shareId}/${data.token}`;
 
       setShareUrl(fullUrl);
       setStatus('ready');

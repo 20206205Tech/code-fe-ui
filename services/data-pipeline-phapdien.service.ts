@@ -1,4 +1,5 @@
 import { apiHelper } from '@/lib/api-helper';
+import { DATA_PIPELINE_PHAPDIEN_SERVICE_NAME } from '@/config/api.constants';
 
 export interface ChuDe {
   value: string;
@@ -19,11 +20,17 @@ export interface PhapDienSummary {
   total_tree_items: number;
 }
 
-const BASE_URL = '/data-pipeline-phapdien';
-
 export const DataPipelinePhapDienService = {
-  getChuDe: () => apiHelper.get<ChuDe[]>(`${BASE_URL}/phapdien/chu-de`),
-  getDeMuc: () => apiHelper.get<DeMuc[]>(`${BASE_URL}/phapdien/de-muc`),
+  getChuDe: () =>
+    apiHelper.get<ChuDe[]>(
+      `/${DATA_PIPELINE_PHAPDIEN_SERVICE_NAME}/phapdien/chu-de`
+    ),
+  getDeMuc: () =>
+    apiHelper.get<DeMuc[]>(
+      `/${DATA_PIPELINE_PHAPDIEN_SERVICE_NAME}/phapdien/de-muc`
+    ),
   getSummary: () =>
-    apiHelper.get<PhapDienSummary>(`${BASE_URL}/phapdien/summary`),
+    apiHelper.get<PhapDienSummary>(
+      `/${DATA_PIPELINE_PHAPDIEN_SERVICE_NAME}/phapdien/summary`
+    ),
 };

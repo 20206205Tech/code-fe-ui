@@ -2,8 +2,8 @@
 
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth-context';
-import { chatBookmarkService } from '@/services/chat-bookmark.service';
-import { chatService, ChatSession } from '@/services/chat.service';
+import { conversationService } from '@/services/conversation.service';
+import { chatbotService, ChatSession } from '@/services/chatbot.service';
 import {
   Bookmark,
   CreditCard,
@@ -43,7 +43,7 @@ export function Sidebar() {
   const loadHistory = async () => {
     setIsLoading(true);
     try {
-      const history = await chatService.getHistory();
+      const history = await chatbotService.getHistory();
       setSessions(history);
     } catch (error) {
       console.error('Failed to load chat history:', error);
@@ -55,11 +55,11 @@ export function Sidebar() {
   const loadBookmarks = async () => {
     setIsBookmarksLoading(true);
     try {
-      const folders = await chatBookmarkService.getBookmarkFolders();
+      const folders = await conversationService.getBookmarkFolders();
       // For each folder, fetch detail to get items
       const foldersWithItems = await Promise.all(
-        folders.map(async (f) => {
-          const detail = await chatBookmarkService.getBookmarkDetail(f.id);
+        folders.map(async (f: any) => {
+          const detail = await conversationService.getBookmarkDetail(f.id);
           return { ...f, items: detail.items || [] };
         })
       );

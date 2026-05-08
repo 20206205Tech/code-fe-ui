@@ -1,4 +1,5 @@
 import { apiHelper } from '@/lib/api-helper';
+import { DATA_PIPELINE_VBPLNEW_SERVICE_NAME } from '@/config/api.constants';
 
 export interface Workflow {
   id: number;
@@ -57,25 +58,44 @@ export interface Major {
   total_count: number;
 }
 
-const BASE_URL = '/data-pipeline-vbplnew';
-
 export const DataPipelineVbplnewService = {
-  getWorkflows: () => apiHelper.get<Workflow[]>(`${BASE_URL}/workflows`),
+  getWorkflows: () =>
+    apiHelper.get<Workflow[]>(
+      `/${DATA_PIPELINE_VBPLNEW_SERVICE_NAME}/workflows`
+    ),
   getWorkflowSummary: () =>
-    apiHelper.get<WorkflowSummary[]>(`${BASE_URL}/workflows/summary`),
+    apiHelper.get<WorkflowSummary[]>(
+      `/${DATA_PIPELINE_VBPLNEW_SERVICE_NAME}/workflows/summary`
+    ),
   getDocumentTotal: () =>
-    apiHelper.get<DocumentTotal>(`${BASE_URL}/documents/total`),
+    apiHelper.get<DocumentTotal>(
+      `/${DATA_PIPELINE_VBPLNEW_SERVICE_NAME}/documents/total`
+    ),
   getDocumentStatus: () =>
-    apiHelper.get<DocumentStatus[]>(`${BASE_URL}/documents/status`),
+    apiHelper.get<DocumentStatus[]>(
+      `/${DATA_PIPELINE_VBPLNEW_SERVICE_NAME}/documents/status`
+    ),
   getRecentDocuments: (limit = 10) =>
-    apiHelper.get<RecentDocument[]>(`${BASE_URL}/documents/recent`, {
-      params: { limit },
-    }),
+    apiHelper.get<RecentDocument[]>(
+      `/${DATA_PIPELINE_VBPLNEW_SERVICE_NAME}/documents/recent`,
+      {
+        params: { limit },
+      }
+    ),
   getIssueDates: () =>
-    apiHelper.get<IssueDate[]>(`${BASE_URL}/documents/issue-date`),
+    apiHelper.get<IssueDate[]>(
+      `/${DATA_PIPELINE_VBPLNEW_SERVICE_NAME}/documents/issue-date`
+    ),
   getDocTypes: () =>
-    apiHelper.get<DocType[]>(`${BASE_URL}/documents/doc-types`),
+    apiHelper.get<DocType[]>(
+      `/${DATA_PIPELINE_VBPLNEW_SERVICE_NAME}/documents/doc-types`
+    ),
   getEffStatuses: () =>
-    apiHelper.get<EffStatus[]>(`${BASE_URL}/documents/eff-statuses`),
-  getMajors: () => apiHelper.get<Major[]>(`${BASE_URL}/documents/majors`),
+    apiHelper.get<EffStatus[]>(
+      `/${DATA_PIPELINE_VBPLNEW_SERVICE_NAME}/documents/eff-statuses`
+    ),
+  getMajors: () =>
+    apiHelper.get<Major[]>(
+      `/${DATA_PIPELINE_VBPLNEW_SERVICE_NAME}/documents/majors`
+    ),
 };

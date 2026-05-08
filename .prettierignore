@@ -1,0 +1,3 @@
+# Bỏ qua thư mục migrations
+# src/database/migrations/
+next-env.d.ts

@@ -1,4 +1,5 @@
 import { apiHelper } from '@/lib/api-helper';
+import { NEON_SETTING_SERVICE_NAME } from '@/config/api.constants';
 
 export interface SettingItem {
   key: string;
@@ -7,7 +8,7 @@ export interface SettingItem {
 
 export const settingsService = {
   getSettings: (accessToken: string): Promise<SettingItem[]> => {
-    return apiHelper.get<SettingItem[]>('/settings', {
+    return apiHelper.get<SettingItem[]>(`/${NEON_SETTING_SERVICE_NAME}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
   },
@@ -16,7 +17,7 @@ export const settingsService = {
     accessToken: string,
     settings: SettingItem[]
   ): Promise<void> => {
-    return apiHelper.post<void>('/settings', settings, {
+    return apiHelper.post<void>(`/${NEON_SETTING_SERVICE_NAME}`, settings, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
   },
