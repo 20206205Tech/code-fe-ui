@@ -1,4 +1,4 @@
-import apiClient from '@/lib/api-client';
+import { apiHelper } from '@/lib/api-helper';
 
 export type DocumentStatus = 'UPLOADED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
 
@@ -12,46 +12,25 @@ export interface DocumentInfo {
   has_summary: boolean;
 }
 
-export interface UploadResponse {
-  success: boolean;
-  message: string;
-  data: {
-    doc_id: string;
-    filename: string;
-    status: 'UPLOADED';
-  };
-}
-
-export interface StatusResponse {
-  success: boolean;
-  message: string;
-  data: DocumentInfo;
-}
-
 const DOCUMENT_API_BASE = '/document';
 
 export const documentService = {
-  uploadDocument: async (file: File): Promise<UploadResponse['data']> => {
+  uploadDocument: (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await apiClient.post<UploadResponse>(
-      `${DOCUMENT_API_BASE}/documents/upload`,
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      }
-    );
-
-    return response.data.data;
+    return apiHelper.post<{
+      doc_id: string;
+      filename: string;
+      status: 'UPLOADED';
+    }>(`${DOCUMENT_API_BASE}/documents/upload`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
   },
 
-  getDocumentStatus: async (docId: string): Promise<DocumentInfo> => {
-    const response = await apiClient.get<StatusResponse>(
+  getDocumentStatus: (docId: string) => {
+    return apiHelper.get<DocumentInfo>(
       `${DOCUMENT_API_BASE}/documents/${docId}`
     );
-    return response.data.data;
   },
 };

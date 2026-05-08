@@ -43,7 +43,7 @@ export function ChatInput({ onSend, isLoading = false }: ChatInputProps) {
   const [docs, setDocs] = useState<DocumentInfo[]>([]);
   const pollingIntervals = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
-  const isVip = subscription?.status === 'active' || user?.role === 'admin';
+  const isVip = subscription?.status === 'active';
   const isProcessing =
     isUploading ||
     docs.some((d) => d.status !== 'COMPLETED' && d.status !== 'FAILED');

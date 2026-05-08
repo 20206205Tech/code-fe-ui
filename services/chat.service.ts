@@ -1,4 +1,4 @@
-import apiClient from '@/lib/api-client';
+import { apiHelper } from '@/lib/api-helper';
 import { TOKEN_STORAGE_KEY } from '@/config/app.config';
 import { cookieHelper } from '@/lib/cookie-helper';
 
@@ -25,9 +25,8 @@ const CHATBOT_BASE = '/chatbot/chats';
 
 const getAuthToken = () => {
   const storedToken = cookieHelper.get(TOKEN_STORAGE_KEY);
-  if (storedToken && storedToken.access_token) {
-    return storedToken.access_token;
-  }
+  if (storedToken && storedToken.access_token) return storedToken.access_token;
+
   if (typeof window !== 'undefined') {
     const authTokens = localStorage.getItem(TOKEN_STORAGE_KEY);
     if (authTokens) {
@@ -42,13 +41,10 @@ const getAuthToken = () => {
 };
 
 export const chatService = {
-  // Conversation Service: Interaction
-  startChat: async () => {
-    const response = await apiClient.post<{
-      message: string;
-      data: { chatId: string; createdAt: string };
-    }>(`${CONVERSATION_BASE}/start`);
-    return response.data.data;
+  startChat: () => {
+    return apiHelper.post<{ chatId: string; createdAt: string }>(
+      `${CONVERSATION_BASE}/start`
+    );
   },
 
   streamChat: async (
@@ -64,16 +60,10 @@ export const chatService = {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({
-        chat_id: chatId,
-        query,
-        file_ids: fileIds,
-      }),
+      body: JSON.stringify({ chat_id: chatId, query, file_ids: fileIds }),
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to stream chat');
-    }
+    if (!response.ok) throw new Error('Failed to stream chat');
 
     const reader = response.body?.getReader();
     const decoder = new TextDecoder();
@@ -101,35 +91,21 @@ export const chatService = {
       const lines = buffer.split('\n');
       buffer = lines.pop() || '';
 
-      for (const line of lines) {
-        processLine(line);
-      }
+      for (const line of lines) processLine(line);
     }
 
-    // Process any remaining data in the buffer
-    if (buffer) {
-      processLine(buffer);
-    }
+    if (buffer) processLine(buffer);
   },
 
-  deleteChat: async (chatId: string) => {
-    await apiClient.delete(`${CONVERSATION_BASE}/${chatId}`);
+  deleteChat: (chatId: string) => {
+    return apiHelper.delete<void>(`${CONVERSATION_BASE}/${chatId}`);
   },
 
-  // Chatbot Service: Persistence
-  getHistory: async () => {
-    const response = await apiClient.get<{
-      success: boolean;
-      data: ChatSession[];
-    }>(`${CHATBOT_BASE}`);
-    return response.data.data;
+  getHistory: () => {
+    return apiHelper.get<ChatSession[]>(`${CHATBOT_BASE}`);
   },
 
-  getChatMessages: async (chatId: string) => {
-    const response = await apiClient.get<{
-      success: boolean;
-      data: ChatMessage[];
-    }>(`${CHATBOT_BASE}/${chatId}`);
-    return response.data.data;
+  getChatMessages: (chatId: string) => {
+    return apiHelper.get<ChatMessage[]>(`${CHATBOT_BASE}/${chatId}`);
   },
 };

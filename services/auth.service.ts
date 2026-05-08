@@ -2,7 +2,6 @@ import axios from 'axios';
 
 export const authService = {
   loginWithGoogle: () => {
-    // Với redirect, trình duyệt cần URL tuyệt đối. Ta xây dựng nó từ biến môi trường.
     const baseUrl =
       process.env.NEXT_PUBLIC_API_URL || 'https://api.20206205.tech/api';
     const endpoint = process.env.NODE_ENV === 'development' ? '/dev' : '/prod';
@@ -17,18 +16,12 @@ export const authService = {
 
   refreshAccessToken: async (currentRefreshToken: string) => {
     try {
-      // Dùng proxy /api/backend để an toàn và tránh CORS
       const response = await axios.post(
         `/api/backend/supabase/auth/v1/token?grant_type=refresh_token`,
-        {
-          refresh_token: currentRefreshToken,
-        },
-        {
-          headers: { 'Content-Type': 'application/json' },
-        }
+        { refresh_token: currentRefreshToken },
+        { headers: { 'Content-Type': 'application/json' } }
       );
-
-      return response.data; // Mong đợi trả về: { access_token, refresh_token, expires_in }
+      return response.data;
     } catch (error: any) {
       console.error(
         'Token refresh failed:',
