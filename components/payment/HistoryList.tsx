@@ -135,9 +135,6 @@ export default function HistoryList() {
             <TableHead className="font-bold text-slate-600 dark:text-slate-400">
               Số tiền
             </TableHead>
-            <TableHead className="font-bold text-slate-600 dark:text-slate-400">
-              Phương thức
-            </TableHead>
             <TableHead className="text-right font-bold text-slate-600 dark:text-slate-400">
               Trạng thái
             </TableHead>
@@ -159,11 +156,6 @@ export default function HistoryList() {
               </TableCell>
               <TableCell className="font-semibold text-slate-800 dark:text-slate-200">
                 {formatCurrency(tx.amount || (tx as any).final_amount || 0)}
-              </TableCell>
-              <TableCell>
-                <span className="uppercase text-[9px] font-black tracking-widest text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-800 px-2 py-0.5 rounded bg-white dark:bg-slate-950">
-                  {tx.provider || (tx as any).payment_method || 'N/A'}
-                </span>
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end">
