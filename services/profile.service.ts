@@ -39,6 +39,6 @@ export const profileService = {
       },
     });
 
-    return `/api/backend/supabase/storage/v1/object/public/avatars/${fileName}`;
+    return `/api/api-gateway/supabase/storage/v1/object/public/avatars/${fileName}`;
   },
 };

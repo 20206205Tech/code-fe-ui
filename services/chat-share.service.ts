@@ -18,7 +18,7 @@ export const chatShareService = {
     try {
       // Dùng chung apiHelper để tận dụng logic bắt lỗi và lấy data
       return await apiHelper.get<any>(
-        `/api/backend/conversation/shared-chats/public/${shareId}/${token}`
+        `/api/api-gateway/conversation/shared-chats/public/${shareId}/${token}`
       );
     } catch (error) {
       throw new Error('Shared chat not found or expired');

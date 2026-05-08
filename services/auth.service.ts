@@ -17,7 +17,7 @@ export const authService = {
   refreshAccessToken: async (currentRefreshToken: string) => {
     try {
       const response = await axios.post(
-        `/api/backend/supabase/auth/v1/token?grant_type=refresh_token`,
+        `/api/api-gateway/supabase/auth/v1/token?grant_type=refresh_token`,
         { refresh_token: currentRefreshToken },
         { headers: { 'Content-Type': 'application/json' } }
       );

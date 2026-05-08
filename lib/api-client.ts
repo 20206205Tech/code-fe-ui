@@ -3,7 +3,7 @@ import { TOKEN_STORAGE_KEY } from '@/config/app.config';
 import { cookieHelper } from './cookie-helper';
 
 const apiClient = axios.create({
-  baseURL: '/api/backend',
+  baseURL: '/api/api-gateway',
   headers: {
     'Content-Type': 'application/json',
   },

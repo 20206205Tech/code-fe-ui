@@ -54,14 +54,17 @@ export const chatService = {
     onUpdate: (update: StreamUpdate) => void
   ) => {
     const token = getAuthToken();
-    const response = await fetch(`/api/backend${CONVERSATION_BASE}/stream`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ chat_id: chatId, query, file_ids: fileIds }),
-    });
+    const response = await fetch(
+      `/api/api-gateway${CONVERSATION_BASE}/stream`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ chat_id: chatId, query, file_ids: fileIds }),
+      }
+    );
 
     if (!response.ok) throw new Error('Failed to stream chat');
 
