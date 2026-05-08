@@ -206,7 +206,7 @@ export default function PlansAdmin() {
                   {isSubmitting && (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   )}
-                  Lưu thay đổi
+                  Tạo gói cước
                 </Button>
               </DialogFooter>
             </form>
