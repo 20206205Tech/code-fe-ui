@@ -46,9 +46,9 @@ export default function PlansAdmin() {
 
   // Form state
   const [formData, setFormData] = useState<CreatePlanRequestDto>({
-    name: '',
+    name: 'VIP 1',
     durationMonths: 1,
-    price: 0,
+    price: 10000,
     isActive: true,
   });
 
@@ -76,7 +76,12 @@ export default function PlansAdmin() {
       await paymentService.createPlan(formData);
       toast.success('Đã tạo gói cước mới');
       setIsOpeningDialog(false);
-      setFormData({ name: '', durationMonths: 1, price: 0, isActive: true });
+      setFormData({
+        name: 'VIP 1',
+        durationMonths: 1,
+        price: 10000,
+        isActive: true,
+      });
       fetchPlans();
     } catch (error) {
       console.error('Create failed:', error);
