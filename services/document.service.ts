@@ -1,7 +1,12 @@
 import { apiHelper } from '@/lib/api-helper';
 import { CODE_DOCUMENT_SERVICE_NAME } from '@/config/api.constants';
 
-export type DocumentStatus = 'UPLOADED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+export type DocumentStatus =
+  | 'UPLOADING'
+  | 'UPLOADED'
+  | 'PROCESSING'
+  | 'COMPLETED'
+  | 'FAILED';
 
 export interface DocumentInfo {
   id: string;
@@ -31,5 +36,12 @@ export const documentService = {
     return apiHelper.get<DocumentInfo>(
       `/${CODE_DOCUMENT_SERVICE_NAME}/documents/${docId}`
     );
+  },
+
+  retryDocument: (docId: string) => {
+    return apiHelper.post<{
+      status: string;
+      message: string;
+    }>(`/${CODE_DOCUMENT_SERVICE_NAME}/documents/${docId}/retry`);
   },
 };

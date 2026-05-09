@@ -13,6 +13,7 @@ import {
   FileText,
   Trash2,
   Check,
+  RefreshCw,
 } from 'lucide-react';
 import { useSettings } from '@/lib/settings-context';
 import { useAuth } from '@/lib/auth-context';
@@ -29,9 +30,14 @@ import {
 interface ChatInputProps {
   onSend: (message: string, docIds?: string[]) => void;
   isLoading?: boolean;
+  chatId?: string | null;
 }
 
-export function ChatInput({ onSend, isLoading = false }: ChatInputProps) {
+export function ChatInput({
+  onSend,
+  isLoading = false,
+  chatId,
+}: ChatInputProps) {
   const [message, setMessage] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [isVoiceMode, setIsVoiceMode] = useState(false);
@@ -47,8 +53,28 @@ export function ChatInput({ onSend, isLoading = false }: ChatInputProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [docs, setDocs] = useState<DocumentInfo[]>([]);
   const pollingIntervals = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const prevChatIdRef = useRef<string | null | undefined>(chatId);
 
   const isVip = subscription?.has_active_subscription === true;
+
+  useEffect(() => {
+    // Clear docs when:
+    // 1. Moving to "New Chat" (chatId is null/undefined)
+    // 2. Moving from one existing chat to another existing chat
+    if (chatId !== prevChatIdRef.current) {
+      const movedToNewChat = !chatId;
+      const switchedBetweenChats =
+        prevChatIdRef.current && chatId && prevChatIdRef.current !== chatId;
+
+      if (movedToNewChat || switchedBetweenChats) {
+        setDocs([]);
+        // Clear all polling intervals
+        pollingIntervals.current.forEach((interval) => clearInterval(interval));
+        pollingIntervals.current.clear();
+      }
+      prevChatIdRef.current = chatId;
+    }
+  }, [chatId]);
 
   const isProcessing =
     isUploading ||
@@ -125,7 +151,22 @@ export function ChatInput({ onSend, isLoading = false }: ChatInputProps) {
 
     setIsUploading(true);
 
-    for (const file of selectedFiles) {
+    // Create optimistic docs
+    const tempDocs: DocumentInfo[] = selectedFiles.map((file) => ({
+      id: `temp-${Date.now()}-${file.name}`,
+      filename: file.name,
+      status: 'UPLOADING',
+      has_file: false,
+      has_content: false,
+      has_summary: false,
+    }));
+
+    setDocs((prev) => [...prev, ...tempDocs]);
+
+    for (let i = 0; i < selectedFiles.length; i++) {
+      const file = selectedFiles[i];
+      const tempId = tempDocs[i].id;
+
       try {
         const data = await documentService.uploadDocument(file);
         const newDoc: DocumentInfo = {
@@ -137,16 +178,41 @@ export function ChatInput({ onSend, isLoading = false }: ChatInputProps) {
           has_summary: false,
         };
 
-        setDocs((prev) => [...prev, newDoc]);
+        // Replace temp doc with real doc
+        setDocs((prev) => prev.map((d) => (d.id === tempId ? newDoc : d)));
         startPolling(data.doc_id);
       } catch (error) {
         toast.error(`Tải lên ${file.name} thất bại.`);
         console.error('Upload error:', error);
+        // Update status to FAILED for the specific temp doc
+        setDocs((prev) =>
+          prev.map((d) => (d.id === tempId ? { ...d, status: 'FAILED' } : d))
+        );
       }
     }
 
     setIsUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleRetry = async (docId: string) => {
+    try {
+      // Update status to processing immediately
+      setDocs((prev) =>
+        prev.map((d) => (d.id === docId ? { ...d, status: 'PROCESSING' } : d))
+      );
+
+      await documentService.retryDocument(docId);
+      startPolling(docId);
+      toast.info('Đang thử lại xử lý tài liệu...');
+    } catch (error) {
+      toast.error('Gửi yêu cầu thử lại thất bại.');
+      console.error('Retry error:', error);
+      // Revert status to FAILED if retry request fails
+      setDocs((prev) =>
+        prev.map((d) => (d.id === docId ? { ...d, status: 'FAILED' } : d))
+      );
+    }
   };
 
   const removeDocument = (docId: string) => {
@@ -253,21 +319,43 @@ export function ChatInput({ onSend, isLoading = false }: ChatInputProps) {
                     ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
                     : doc.status === 'FAILED'
                       ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
-                      : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                      : doc.status === 'UPLOADING'
+                        ? 'bg-slate-100 text-slate-600 dark:bg-slate-900/30 dark:text-slate-400'
+                        : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                 }`}
               >
-                {doc.status === 'UPLOADED'
-                  ? 'Đã tải'
-                  : doc.status === 'PROCESSING'
-                    ? 'Xử lý...'
-                    : doc.status === 'COMPLETED'
-                      ? 'OK'
-                      : 'Lỗi'}
+                {doc.status === 'UPLOADING'
+                  ? 'Tải lên...'
+                  : doc.status === 'UPLOADED'
+                    ? 'Đã tải'
+                    : doc.status === 'PROCESSING'
+                      ? 'Xử lý...'
+                      : doc.status === 'COMPLETED'
+                        ? 'OK'
+                        : 'Lỗi'}
               </span>
               {doc.status === 'COMPLETED' ? (
                 <CheckCircle2 size={12} className="text-green-500" />
               ) : doc.status === 'FAILED' ? (
-                <X size={12} className="text-red-500" />
+                <div className="flex items-center gap-1">
+                  <X size={12} className="text-red-500" />
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={() => handleRetry(doc.id)}
+                          className="p-0.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-full transition-colors text-red-500"
+                        >
+                          <RefreshCw size={12} />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p className="text-[10px]">Thử lại</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
               ) : (
                 <Loader2 size={12} className="animate-spin text-blue-500" />
               )}

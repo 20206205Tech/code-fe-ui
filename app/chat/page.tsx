@@ -87,7 +87,7 @@ function ChatContent() {
     setIsLoading(true);
     try {
       const history = await chatbotService.getChatMessages(chatId);
-      const mappedMessages: Message[] = history.map((m) => ({
+      const mappedMessages: Message[] = (history || []).map((m) => ({
         role: m.role === 'human' ? 'user' : 'assistant',
         content: m.content,
       }));
@@ -407,7 +407,11 @@ function ChatContent() {
         {/* Input Area */}
         <div className="fixed md:absolute bottom-0 left-0 right-0 md:left-64 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-4">
           <div className="max-w-4xl mx-auto">
-            <ChatInput onSend={handleSendMessage} isLoading={isLoading} />
+            <ChatInput
+              onSend={handleSendMessage}
+              isLoading={isLoading}
+              chatId={activeChatId}
+            />
             <p className="text-xs text-center text-slate-500 dark:text-slate-400 mt-2">
               Trợ lý AI hỗ trợ thông tin chỉ mang tính chất tham khảo và có thể
               mắc sai sót.

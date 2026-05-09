@@ -29,6 +29,7 @@ import Link from 'next/link';
 import { UserMenu } from './user-menu';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 export function Sidebar() {
   const { user, logout } = useAuth();
@@ -41,6 +42,7 @@ export function Sidebar() {
   const [bookmarkFolders, setBookmarkFolders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isBookmarksLoading, setIsBookmarksLoading] = useState(false);
+  const [isStartingChat, setIsStartingChat] = useState(false);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -87,6 +89,20 @@ export function Sidebar() {
     router.push('/login');
   };
 
+  const handleNewChat = async () => {
+    setIsStartingChat(true);
+    try {
+      const session = await conversationService.startChat();
+      setIsOpen(false);
+      router.push(`/chat?id=${session.chatId}`);
+    } catch (error) {
+      console.error('Failed to start chat:', error);
+      toast.error('Không thể tạo cuộc trò chuyện mới.');
+    } finally {
+      setIsStartingChat(false);
+    }
+  };
+
   const toggleSidebar = () => {
     setIsOpen(!isOpen);
   };
@@ -125,13 +141,15 @@ export function Sidebar() {
         {/* New Chat Button */}
         <div className="p-4 border-b border-slate-200 dark:border-slate-800">
           <Button
-            onClick={() => {
-              setIsOpen(false);
-              router.push('/chat');
-            }}
+            onClick={handleNewChat}
+            disabled={isStartingChat}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium flex items-center justify-center gap-2"
           >
-            <Plus size={18} />
+            {isStartingChat ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <Plus size={18} />
+            )}
             New Chat
           </Button>
         </div>
