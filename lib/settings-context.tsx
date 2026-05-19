@@ -8,20 +8,32 @@ import {
 import { settingsService, SettingItem } from '../services/settings.service';
 import { cookieHelper } from './cookie-helper';
 
+const SETTING_KEYS = {
+  THEME: 'theme',
+  SHOW_EXAMPLE_QUESTIONS: 'show_example_questions',
+  SELECTED_PERSONA_ID: 'selected_persona_id',
+  AUTO_EXPAND_REASONING: 'auto_expand_reasoning',
+} as const;
+
 interface Settings {
   theme: string;
   showExampleQuestions: boolean;
+  selectedPersonaId?: string;
+  autoExpandReasoning: boolean;
 }
 
 const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   showExampleQuestions: true,
+  selectedPersonaId: undefined,
+  autoExpandReasoning: true,
 };
 
 interface SettingsContextType {
   settings: Settings;
   updateSettings: (newSettings: Partial<Settings>) => Promise<void>;
   syncSettings: (token: string) => Promise<void>;
+  clearSettings: () => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(
@@ -44,6 +56,11 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             parsed.showExampleQuestions !== undefined
               ? parsed.showExampleQuestions
               : prev.showExampleQuestions,
+          selectedPersonaId: parsed.selectedPersonaId || prev.selectedPersonaId,
+          autoExpandReasoning:
+            parsed.autoExpandReasoning !== undefined
+              ? parsed.autoExpandReasoning
+              : prev.autoExpandReasoning,
         }));
       } catch (e) {
         console.error('Lỗi parse settings:', e);
@@ -58,9 +75,13 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         const newSettings: Partial<Settings> = {};
 
         apiSettings.forEach((item) => {
-          if (item.key === 'theme') newSettings.theme = item.value;
-          if (item.key === 'show_example_questions')
+          if (item.key === SETTING_KEYS.THEME) newSettings.theme = item.value;
+          if (item.key === SETTING_KEYS.SHOW_EXAMPLE_QUESTIONS)
             newSettings.showExampleQuestions = item.value === 'true';
+          if (item.key === SETTING_KEYS.SELECTED_PERSONA_ID)
+            newSettings.selectedPersonaId = item.value;
+          if (item.key === SETTING_KEYS.AUTO_EXPAND_REASONING)
+            newSettings.autoExpandReasoning = item.value === 'true';
         });
 
         const updated = { ...settings, ...newSettings };
@@ -90,12 +111,24 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     if (tokens?.access_token) {
       const apiPayload: SettingItem[] = [];
       if (newSettings.theme) {
-        apiPayload.push({ key: 'theme', value: newSettings.theme });
+        apiPayload.push({ key: SETTING_KEYS.THEME, value: newSettings.theme });
       }
       if (newSettings.showExampleQuestions !== undefined) {
         apiPayload.push({
-          key: 'show_example_questions',
+          key: SETTING_KEYS.SHOW_EXAMPLE_QUESTIONS,
           value: String(newSettings.showExampleQuestions),
+        });
+      }
+      if (newSettings.selectedPersonaId) {
+        apiPayload.push({
+          key: SETTING_KEYS.SELECTED_PERSONA_ID,
+          value: newSettings.selectedPersonaId,
+        });
+      }
+      if (newSettings.autoExpandReasoning !== undefined) {
+        apiPayload.push({
+          key: SETTING_KEYS.AUTO_EXPAND_REASONING,
+          value: String(newSettings.autoExpandReasoning),
         });
       }
 
@@ -109,9 +142,13 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const clearSettings = () => {
+    setSettings(DEFAULT_SETTINGS);
+  };
+
   return (
     <SettingsContext.Provider
-      value={{ settings, updateSettings, syncSettings }}
+      value={{ settings, updateSettings, syncSettings, clearSettings }}
     >
       {children}
     </SettingsContext.Provider>

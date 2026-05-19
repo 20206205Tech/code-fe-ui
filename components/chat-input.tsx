@@ -26,17 +26,30 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { VoiceSession } from './voice-session';
 
 interface ChatInputProps {
   onSend: (message: string, docIds?: string[]) => void;
   isLoading?: boolean;
   chatId?: string | null;
+  onChatCreated?: (chatId: string) => void;
+  onVoiceMessage?: (role: string, content: string, isFinal: boolean) => void;
+  onVoiceStatus?: (message: string, hidden?: boolean) => void;
+  onAgentState?: (isReasoning: boolean) => void;
+  voiceId?: string;
+  isMessageSending?: boolean;
 }
 
 export function ChatInput({
   onSend,
   isLoading = false,
   chatId,
+  onChatCreated,
+  onVoiceMessage,
+  onVoiceStatus,
+  onAgentState,
+  voiceId,
+  isMessageSending = false,
 }: ChatInputProps) {
   const [message, setMessage] = useState('');
   const [isListening, setIsListening] = useState(false);
@@ -123,6 +136,12 @@ export function ChatInput({
         setDocs((prev) => prev.map((d) => (d.id === docId ? info : d)));
 
         if (info.status === 'COMPLETED' || info.status === 'FAILED') {
+          // Kiểm tra xem liệu doc này còn trong danh sách polling không (tránh race condition khi user đã xóa)
+          if (!pollingIntervals.current.has(docId)) {
+            clearInterval(interval);
+            return;
+          }
+
           clearInterval(interval);
           pollingIntervals.current.delete(docId);
 
@@ -140,11 +159,10 @@ export function ChatInput({
     pollingIntervals.current.set(docId, interval);
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(e.target.files || []);
-    if (selectedFiles.length === 0) return;
+  const uploadFiles = async (files: File[]) => {
+    if (files.length === 0) return;
 
-    if (docs.length + selectedFiles.length > 5) {
+    if (docs.length + files.length > 5) {
       toast.error('Chỉ được phép đính kèm tối đa 5 tài liệu.');
       return;
     }
@@ -152,7 +170,7 @@ export function ChatInput({
     setIsUploading(true);
 
     // Create optimistic docs
-    const tempDocs: DocumentInfo[] = selectedFiles.map((file) => ({
+    const tempDocs: DocumentInfo[] = files.map((file) => ({
       id: `temp-${Date.now()}-${file.name}`,
       filename: file.name,
       status: 'UPLOADING',
@@ -163,8 +181,8 @@ export function ChatInput({
 
     setDocs((prev) => [...prev, ...tempDocs]);
 
-    for (let i = 0; i < selectedFiles.length; i++) {
-      const file = selectedFiles[i];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
       const tempId = tempDocs[i].id;
 
       try {
@@ -192,7 +210,36 @@ export function ChatInput({
     }
 
     setIsUploading(false);
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(e.target.files || []);
+    await uploadFiles(selectedFiles);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    if (!isVip) return;
+
+    const items = e.clipboardData.items;
+    const imageFiles: File[] = [];
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const blob = items[i].getAsFile();
+        if (blob) {
+          const file = new File([blob], `screenshot-${Date.now()}.png`, {
+            type: blob.type,
+          });
+          imageFiles.push(file);
+        }
+      }
+    }
+
+    if (imageFiles.length > 0) {
+      e.preventDefault();
+      await uploadFiles(imageFiles);
+    }
   };
 
   const handleRetry = async (docId: string) => {
@@ -426,6 +473,7 @@ export function ChatInput({
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
+                onPaste={handlePaste}
                 placeholder="Nhập tin nhắn..."
                 disabled={
                   isLoading ||
@@ -441,7 +489,7 @@ export function ChatInput({
                   ref={fileInputRef}
                   onChange={handleFileChange}
                   className="hidden"
-                  accept=".pdf,.doc,.docx,.txt"
+                  accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
                   multiple
                 />
                 <TooltipProvider>
@@ -493,6 +541,21 @@ export function ChatInput({
                 >
                   {isListening ? <MicOff size={18} /> : <Mic size={18} />}
                 </Button>
+
+                <VoiceSession
+                  chatId={chatId || ''}
+                  userId={user?.id || ''}
+                  fileIds={docs.map((d) => d.id)}
+                  useReasoning={settings.use_reasoning}
+                  voiceId={voiceId}
+                  isVip={isVip}
+                  onChatCreated={onChatCreated}
+                  onMessage={onVoiceMessage}
+                  onStatus={onVoiceStatus}
+                  onAgentState={onAgentState}
+                  disabled={isLoading || isProcessing}
+                />
+
                 <Button
                   type="submit"
                   variant="ghost"
@@ -500,7 +563,7 @@ export function ChatInput({
                   disabled={!canSend}
                   className="rounded-full h-9 w-9 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-300 disabled:opacity-30 flex-shrink-0"
                 >
-                  {isLoading ? (
+                  {isMessageSending ? (
                     <Loader2 size={18} className="animate-spin" />
                   ) : (
                     <Send size={18} />

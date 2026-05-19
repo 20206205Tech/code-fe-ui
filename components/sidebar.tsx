@@ -84,9 +84,8 @@ export function Sidebar() {
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    router.push('/login');
+  const handleLogout = async () => {
+    await logout();
   };
 
   const handleNewChat = async () => {
@@ -150,7 +149,7 @@ export function Sidebar() {
             ) : (
               <Plus size={18} />
             )}
-            New Chat
+            Cuộc trò chuyện mới
           </Button>
         </div>
 
@@ -159,7 +158,7 @@ export function Sidebar() {
           {/* Chat History */}
           <div>
             <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-3 px-1">
-              Chat History
+              Lịch sử trò chuyện
             </h2>
             <div className="space-y-2">
               {isLoading && sessions.length === 0 ? (
@@ -190,7 +189,7 @@ export function Sidebar() {
                 ))
               ) : (
                 <div className="text-sm text-slate-500 dark:text-slate-400 py-4 px-1">
-                  No history
+                  Không có lịch sử trò chuyện
                 </div>
               )}
             </div>
@@ -248,6 +247,16 @@ export function Sidebar() {
                   Quản lý gói cước
                 </Button>
               </Link>
+              <Link href="/admin/personas" onClick={() => setIsOpen(false)}>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  <User size={18} className="mr-2" />
+                  Quản lý nhân vật
+                </Button>
+              </Link>
+
               <Link
                 href="/admin/data-pipeline"
                 onClick={() => setIsOpen(false)}
@@ -257,7 +266,7 @@ export function Sidebar() {
                   className="w-full justify-start text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
                   <Workflow size={18} className="mr-2" />
-                  Data Pipeline
+                  Luồng dữ liệu
                 </Button>
               </Link>
             </>

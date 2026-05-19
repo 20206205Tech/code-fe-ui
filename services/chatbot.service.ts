@@ -10,6 +10,7 @@ export interface ChatSession {
 export interface ChatMessage {
   id: string;
   role: 'human' | 'ai';
+  voice_id: string | null;
   content: string;
   created_at: string;
 }

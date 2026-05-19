@@ -10,7 +10,7 @@ export default function AuthCallbackPage() {
         fallback={
           <div className="flex flex-col items-center gap-6 p-6">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            <p className="text-slate-600">Loading authentication...</p>
+            <p className="text-slate-600">Đang tải xác thực...</p>
           </div>
         }
       >

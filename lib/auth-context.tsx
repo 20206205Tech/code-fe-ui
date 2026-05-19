@@ -7,6 +7,7 @@ import React, {
   useEffect,
   useState,
 } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   TOKEN_CHECK_INTERVAL,
   TOKEN_REFRESH_THRESHOLD,
@@ -15,11 +16,16 @@ import {
   USER_SETTINGS_STORAGE_KEY,
 } from '../config/app.config';
 import { authService } from '../services/auth.service';
+import { authMfaService } from '../services/auth-mfa.service';
 import { useSettings } from './settings-context';
 import { cookieHelper } from './cookie-helper';
 import { paymentService, Subscription } from '../services/payment.service';
 
-import { decodeJwtPayload, getUserRoleFromToken } from './token-helper';
+import {
+  decodeJwtPayload,
+  getUserRoleFromToken,
+  getAALFromToken,
+} from './token-helper';
 
 export interface AuthToken {
   access_token: string;
@@ -41,16 +47,19 @@ interface AuthContextType {
   subscription: Subscription | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isMfaRequired: boolean;
+  mfaFactors: any[];
 
   login: (
     access_token: string,
     refresh_token: string,
     expires_in?: number
   ) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   updateUser: (user: Partial<User>) => Promise<void>;
   refreshToken: () => Promise<void>;
   syncSubscription: () => Promise<void>;
+  refreshMfa: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -60,7 +69,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [tokens, setTokens] = useState<AuthToken | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { syncSettings } = useSettings();
+  const router = useRouter();
+  const { syncSettings, clearSettings } = useSettings();
 
   useEffect(() => {
     const storedToken = cookieHelper.get(TOKEN_STORAGE_KEY);
@@ -154,10 +164,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           { maxAge: expires_in }
         );
 
-        // Sync settings after login
-        await syncSettings(access_token);
-        // Sync subscription after login
-        await syncSubscription();
+        // Chỉ sync dữ liệu sâu (settings, subscription) nếu đã đạt cấp độ bảo mật cao nhất (aal2)
+        // Nếu mới chỉ là aal1 (vừa nhập pass, chờ OTP), ta bỏ qua để đợi bước verifyMFA gọi lại login với aal2
+        const aal = getAALFromToken(access_token);
+        if (aal === 'aal2') {
+          // Sync settings after login
+          await syncSettings(access_token);
+          // Sync subscription after login
+          await syncSubscription();
+        }
       } catch (error) {
         throw error;
       }
@@ -165,16 +180,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    const accessToken = tokens?.access_token;
+
+    // 1. Dọn dẹp State và Storage ngay lập tức để UI phản hồi nhanh
     setTokens(null);
     setUser(null);
+    setSubscription(null);
 
     localStorage.removeItem(USER_STORAGE_KEY);
     localStorage.removeItem(USER_SETTINGS_STORAGE_KEY);
-
     cookieHelper.remove(TOKEN_STORAGE_KEY);
-    setSubscription(null);
-  }, []);
+
+    // 2. Gọi API logout ở background (không đợi nếu không cần thiết, hoặc bắt lỗi)
+    if (accessToken) {
+      try {
+        await authService.logout(accessToken);
+      } catch (error) {
+        console.error('API Logout failed:', error);
+      }
+    }
+
+    // 3. Chuyển hướng về login bằng router.push để tránh reload F5
+    clearSettings();
+    router.push('/login');
+  }, [tokens, router, clearSettings]);
 
   const refreshToken = async () => {
     if (!tokens?.refresh_token) return;
@@ -243,17 +273,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const [mfaFactors, setMfaFactors] = useState<any[]>([]);
+
+  // Hàm load factors để biết user đã bật MFA chưa
+  const loadMfaFactors = async (accessToken: string) => {
+    try {
+      const factors = await authMfaService.listFactors(accessToken);
+      setMfaFactors(factors.active || []);
+      return factors.active || [];
+    } catch (e) {
+      console.error('Load MFA factors failed:', e);
+      return [];
+    }
+  };
+
+  useEffect(() => {
+    if (tokens?.access_token) {
+      loadMfaFactors(tokens.access_token);
+    } else {
+      setMfaFactors([]);
+    }
+  }, [tokens]);
+
+  const currentAAL = tokens ? getAALFromToken(tokens.access_token) : 'aal1';
+
+  // isAuthenticated: Bắt buộc phải qua bước MFA (aal2)
+  const isAuthenticated =
+    !isLoading && !!tokens && !!user && currentAAL === 'aal2';
+
+  // isMfaRequired: Nếu mới chỉ có password (aal1) thì bắt buộc phải xác thực MFA
+  const isMfaRequired =
+    !isLoading && !!tokens && !!user && currentAAL === 'aal1';
+
+  const refreshMfa = async () => {
+    if (tokens?.access_token) {
+      await loadMfaFactors(tokens.access_token);
+    }
+  };
+
   const value: AuthContextType = {
     user,
     tokens,
     subscription,
     isLoading,
-    isAuthenticated: !!tokens && !!user,
+    isAuthenticated,
+    isMfaRequired,
+    mfaFactors,
     login,
     logout,
     updateUser,
     refreshToken,
     syncSubscription,
+    refreshMfa,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

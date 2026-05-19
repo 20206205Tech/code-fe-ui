@@ -202,7 +202,7 @@ export default function BookmarksManager() {
           <div className="p-8 max-w-3xl">
             <div className="flex justify-between items-start mb-8">
               <div>
-                <Badge className="mb-3">Bookmark Detail</Badge>
+                <Badge className="mb-3">Chi tiết Bookmark</Badge>
                 <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
                   {selectedItem.title}
                 </h1>

@@ -17,3 +17,8 @@ export function getUserRoleFromToken(token: string): string {
   const payload = decodeJwtPayload(token);
   return payload?.app_metadata?.role || 'user'; // Fallback mặc định là 'user'
 }
+
+export function getAALFromToken(token: string): string {
+  const payload = decodeJwtPayload(token);
+  return payload?.aal || 'aal1';
+}

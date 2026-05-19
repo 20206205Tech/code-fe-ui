@@ -14,3 +14,4 @@ export const CODE_CONVERSATION_SERVICE_NAME = 'code-conversation-service';
 export const CODE_CHATBOT_SERVICE_NAME = 'code-chatbot-service';
 
 export const CODE_DOCUMENT_SERVICE_NAME = 'code-document-service';
+export const CODE_PERSONA_SERVICE_NAME = 'code-persona-service';
