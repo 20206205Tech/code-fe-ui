@@ -73,6 +73,15 @@ export function ChatInput({
   const isVip = subscription?.has_active_subscription === true;
 
   useEffect(() => {
+    console.log(
+      '[ChatInput] isVip status changed:',
+      isVip,
+      'subscription:',
+      subscription
+    );
+  }, [isVip, subscription]);
+
+  useEffect(() => {
     // Clear docs when:
     // 1. Moving to "New Chat" (chatId is null/undefined)
     // 2. Moving from one existing chat to another existing chat

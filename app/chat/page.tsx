@@ -66,6 +66,7 @@ function ChatContent() {
     isAuthenticated,
     isMfaRequired,
     isLoading: isAuthLoading,
+    syncSubscription,
   } = useAuth();
   const { settings, updateSettings } = useSettings();
   const searchParams = useSearchParams();
@@ -82,6 +83,13 @@ function ChatContent() {
     }
   }, [isAuthenticated, isMfaRequired, isAuthLoading, router]);
 
+  // Sync subscription status when landing on chat page to ensure VIP status is up-to-date
+  useEffect(() => {
+    if (isAuthenticated) {
+      syncSubscription();
+    }
+  }, [isAuthenticated]);
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [isMessageSending, setIsMessageSending] = useState(false);
@@ -94,7 +102,17 @@ function ChatContent() {
   const [isBookmarkModalOpen, setIsBookmarkModalOpen] = useState(false);
 
   const [useReasoning, setUseReasoning] = useState(false);
-  const isVip = useAuth().subscription?.has_active_subscription === true;
+  const { subscription } = useAuth();
+  const isVip = subscription?.has_active_subscription === true;
+
+  useEffect(() => {
+    console.log(
+      '[ChatPage] isVip status changed:',
+      isVip,
+      'subscription:',
+      subscription
+    );
+  }, [isVip, subscription]);
 
   // Persona states
   const [personas, setPersonas] = useState<Persona[]>([]);
