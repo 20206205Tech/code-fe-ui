@@ -56,10 +56,10 @@ export default function ProfilePage() {
             <div className="w-full flex items-center justify-between">
               <Link href="/chat">
                 <Button variant="ghost" size="sm" className="gap-2">
-                  <ArrowLeft size={16} /> Back
+                  <ArrowLeft size={16} /> Quay lại
                 </Button>
               </Link>
-              <h1 className="text-xl font-bold">Profile</h1>
+              <h1 className="text-xl font-bold">Trang cá nhân</h1>
               <div className="w-10" /> {/* Để cân bằng layout */}
             </div>
 
@@ -106,12 +106,12 @@ export default function ProfilePage() {
             >
               <div className="space-y-1">
                 <label className="text-xs font-medium text-slate-500 px-1">
-                  Full Name
+                  Họ và tên
                 </label>
                 <Input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Name"
+                  placeholder="Tên của bạn"
                   className="bg-white dark:bg-slate-800"
                 />
               </div>
@@ -133,7 +133,7 @@ export default function ProfilePage() {
                 disabled={isLoading || name === user?.name || !name.trim()}
                 className="w-full bg-blue-600 hover:bg-blue-700 mt-2"
               >
-                {isLoading ? 'Processing...' : 'Save Changes'}
+                {isLoading ? 'Đang xử lý...' : 'Lưu thay đổi'}
               </Button>
             </form>
           </div>

@@ -189,7 +189,7 @@ export default function AdminDataPipelinePage() {
         <main className="flex-1 overflow-y-auto pt-4 p-4 md:p-8">
           <div className="max-w-7xl mx-auto space-y-6">
             <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-6">
-              Data Pipeline Dashboard
+              Bảng điều khiển Luồng dữ liệu
             </h1>
 
             <Tabs defaultValue="vbplnew" className="w-full">
@@ -348,7 +348,7 @@ export default function AdminDataPipelinePage() {
                   {/* Biểu đồ Workflow Summary */}
                   <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm lg:col-span-2">
                     <h2 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-200">
-                      Tiến trình Data Pipeline
+                      Tiến trình Luồng dữ liệu
                     </h2>
                     <div className="h-[350px]">
                       <ResponsiveContainer width="100%" height="100%">

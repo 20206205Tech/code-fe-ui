@@ -1,5 +1,6 @@
-import { apiHelper } from '@/lib/api-helper';
 import { CODE_PAYMENT_SERVICE_NAME } from '@/config/api.constants';
+import { USE_MOCK_API } from '@/config/mock.config';
+import { apiHelper } from '@/lib/api-helper';
 
 export interface Plan {
   id: string;
@@ -49,12 +50,34 @@ export interface Subscription {
 
 export const paymentService = {
   getPlans: (skip: number = 0, limit: number = 10): Promise<Plan[]> => {
+    if (USE_MOCK_API && process.env.NODE_ENV === 'development') {
+      return Promise.resolve([
+        {
+          id: 'vip-plan-id',
+          name: 'VIP Developer Plan',
+          durationMonths: 12,
+          price: 0,
+          isActive: true,
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+    }
     return apiHelper.get<Plan[]>(`/${CODE_PAYMENT_SERVICE_NAME}/plans`, {
       params: { skip, limit },
     });
   },
 
   getPlanDetail: (planId: string): Promise<Plan> => {
+    if (USE_MOCK_API && process.env.NODE_ENV === 'development') {
+      return Promise.resolve({
+        id: planId,
+        name: 'VIP Developer Plan',
+        durationMonths: 12,
+        price: 0,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+      });
+    }
     return apiHelper.get<Plan>(`/${CODE_PAYMENT_SERVICE_NAME}/plans/${planId}`);
   },
 
@@ -71,6 +94,9 @@ export const paymentService = {
   purchaseSubscription: (
     data: PurchaseSubscriptionRequestDto
   ): Promise<{ payment_url: string }> => {
+    if (USE_MOCK_API && process.env.NODE_ENV === 'development') {
+      return Promise.resolve({ payment_url: '#' });
+    }
     return apiHelper.post<{ payment_url: string }>(
       `/${CODE_PAYMENT_SERVICE_NAME}/subscriptions/purchase`,
       data
@@ -78,6 +104,22 @@ export const paymentService = {
   },
 
   getMySubscription: async (): Promise<Subscription | null> => {
+    if (USE_MOCK_API && process.env.NODE_ENV === 'development') {
+      return {
+        subscription: {
+          id: 'dev-sub-id',
+          user_id: 'dev-user-id',
+          plan_id: 'vip-plan-id',
+          status: 'active',
+          start_date: new Date().toISOString(),
+          end_date: '2099-12-31T23:59:59Z',
+          created_at: new Date().toISOString(),
+        },
+        has_active_subscription: true,
+        days_remaining: 9999,
+      };
+    }
+
     try {
       return await apiHelper.get<Subscription>(
         `/${CODE_PAYMENT_SERVICE_NAME}/subscriptions`
@@ -92,6 +134,9 @@ export const paymentService = {
     skip: number = 0,
     limit: number = 10
   ): Promise<Transaction[]> => {
+    if (USE_MOCK_API && process.env.NODE_ENV === 'development') {
+      return Promise.resolve([]);
+    }
     return apiHelper.get<Transaction[]>(
       `/${CODE_PAYMENT_SERVICE_NAME}/subscriptions/history`,
       {

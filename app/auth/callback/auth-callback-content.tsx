@@ -3,6 +3,11 @@
 import { useAuth } from '@/lib/auth-context';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import {
+  decodeJwtPayload,
+  getUserRoleFromToken,
+  getAALFromToken,
+} from '@/lib/token-helper';
 
 export function AuthCallbackContent() {
   const router = useRouter();
@@ -21,7 +26,7 @@ export function AuthCallbackContent() {
         const errorParam =
           searchParams.get('error') || searchParams.get('error_description');
         if (errorParam) {
-          setError(`Authentication failed: ${errorParam}`);
+          setError(`Xác thực thất bại: ${errorParam}`);
           return;
         }
 
@@ -33,19 +38,30 @@ export function AuthCallbackContent() {
         const expiresIn = hashParams.get('expires_in');
 
         if (!accessToken || !refreshToken) {
-          setError('No access token received');
+          setError('Không nhận được mã truy cập');
           return;
         }
+
+        const aal = getAALFromToken(accessToken);
 
         await login(
           accessToken,
           refreshToken,
           expiresIn ? parseInt(expiresIn) : 3600
         );
-        router.push('/chat');
+
+        const type = hashParams.get('type') || searchParams.get('type');
+        if (type === 'recovery') {
+          router.push('/auth/reset-password');
+        } else if (aal === 'aal1') {
+          // Redirect to MFA page
+          router.push('/auth/mfa');
+        } else {
+          router.push('/chat');
+        }
       } catch (err) {
         console.error('Auth callback error:', err);
-        setError(err instanceof Error ? err.message : 'Authentication failed');
+        setError(err instanceof Error ? err.message : 'Xác thực thất bại');
         setTimeout(() => router.push('/login'), 2000);
       }
     };
@@ -60,19 +76,21 @@ export function AuthCallbackContent() {
       {error ? (
         <>
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-red-600 mb-2">Error</h1>
+            <h1 className="text-2xl font-bold text-red-600 mb-2">Lỗi</h1>
             <p className="text-slate-600">{error}</p>
           </div>
-          <p className="text-sm text-slate-500">Redirecting to login...</p>
+          <p className="text-sm text-slate-500">
+            Đang chuyển hướng đến trang đăng nhập...
+          </p>
         </>
       ) : (
         <>
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           <h1 className="text-xl font-semibold text-slate-900">
-            Authenticating...
+            Đang xác thực...
           </h1>
           <p className="text-sm text-slate-600">
-            Please wait while we complete your login
+            Vui lòng đợi trong khi chúng tôi hoàn tất đăng nhập
           </p>
         </>
       )}

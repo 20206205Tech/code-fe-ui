@@ -7,8 +7,11 @@ import {
 import { cookieHelper } from '@/lib/cookie-helper';
 
 export interface StreamUpdate {
-  type: 'status' | 'content' | 'metadata';
-  message: any;
+  type: 'status' | 'content' | 'metadata' | 'status_update' | 'content_chunk';
+  message?: any;
+  content?: string;
+  sources?: any[];
+  full_answer?: string;
 }
 
 const CONVERSATION_BASE = `/${CODE_CONVERSATION_SERVICE_NAME}/chats`;
@@ -78,7 +81,15 @@ export const conversationService = {
         const currentData = line.substring(6);
         try {
           const parsed = JSON.parse(currentData);
-          onUpdate(parsed.data || parsed);
+          const update = parsed.data || parsed;
+
+          // Bỏ qua tin nhắn heartbeat
+          if (update.type === 'heartbeat') {
+            console.log('💓 Heartbeat received');
+            return;
+          }
+
+          onUpdate(update);
         } catch (e) {
           console.error('Error parsing stream chunk:', e);
         }
@@ -101,6 +112,24 @@ export const conversationService = {
 
   deleteChat: (chatId: string) => {
     return apiHelper.delete<void>(`${CONVERSATION_BASE}/${chatId}`);
+  },
+
+  getVoiceSessionToken: (
+    chatId: string,
+    fileIds: string[] = [],
+    useReasoning: boolean = false,
+    voiceId?: string
+  ) => {
+    return apiHelper.get<{ token: string; serverUrl: string }>(
+      `${CONVERSATION_BASE}/${chatId}/voice-token`,
+      {
+        params: {
+          file_ids: fileIds,
+          use_reasoning: useReasoning,
+          voice_id: voiceId,
+        },
+      }
+    );
   },
 
   // Bookmark methods

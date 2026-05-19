@@ -21,6 +21,87 @@ export const authService = {
     window.location.href = authUrl.toString();
   },
 
+  loginWithEmailPassword: async (email: string, password: string) => {
+    try {
+      const response = await axios.post(
+        `${API_GATEWAY_PREFIX}/${SUPABASE_AUTH_SERVICE_NAME}/auth/v1/token?grant_type=password`,
+        { email, password },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+      return response.data;
+    } catch (error: any) {
+      const errorData = error.response?.data;
+      if (errorData?.error_code === 'invalid_credentials') {
+        throw new Error('Sai thông tin đăng nhập hoặc chưa xác nhận mail');
+      }
+
+      console.error('Email login failed:', errorData || error.message);
+      throw new Error(
+        errorData?.error_description || errorData?.msg || 'Đăng nhập thất bại'
+      );
+    }
+  },
+
+  signUp: async (email: string, password: string) => {
+    try {
+      const redirectUrl = encodeURIComponent(
+        `${window.location.origin}/auth/callback`
+      );
+      const response = await axios.post(
+        `${API_GATEWAY_PREFIX}/${SUPABASE_AUTH_SERVICE_NAME}/auth/v1/signup?redirect_to=${redirectUrl}`,
+        { email, password },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Signup failed:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.msg || 'Đăng ký thất bại');
+    }
+  },
+
+  recoverPassword: async (email: string) => {
+    try {
+      const redirectUrl = encodeURIComponent(
+        `${window.location.origin}/auth/callback`
+      );
+      const response = await axios.post(
+        `${API_GATEWAY_PREFIX}/${SUPABASE_AUTH_SERVICE_NAME}/auth/v1/recover?redirect_to=${redirectUrl}`,
+        { email },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        'Password recovery failed:',
+        error.response?.data || error.message
+      );
+      throw new Error(error.response?.data?.msg || 'Password recovery failed');
+    }
+  },
+
+  updateUserPassword: async (accessToken: string, password: string) => {
+    try {
+      const response = await axios.put(
+        `${API_GATEWAY_PREFIX}/${SUPABASE_AUTH_SERVICE_NAME}/auth/v1/user`,
+        { password },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+      return response.data;
+    } catch (error: any) {
+      const errorData = error.response?.data;
+      const customError = new Error(errorData?.msg || 'Update password failed');
+      if (errorData?.error_code) {
+        (customError as any).errorCode = errorData.error_code;
+      }
+      throw customError;
+    }
+  },
+
   refreshAccessToken: async (currentRefreshToken: string) => {
     try {
       const response = await axios.post(
@@ -77,5 +158,23 @@ export const authService = {
     });
 
     return `${API_GATEWAY_PREFIX}/${SUPABASE_AUTH_SERVICE_NAME}/storage/v1/object/public/avatars/${fileName}`;
+  },
+
+  logout: async (accessToken: string) => {
+    try {
+      await axios.post(
+        `${API_GATEWAY_PREFIX}/${SUPABASE_AUTH_SERVICE_NAME}/auth/v1/logout`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+    } catch (error: any) {
+      console.error('Logout failed:', error.response?.data || error.message);
+      // We still return true to allow local logout even if server call fails
+    }
+    return true;
   },
 };

@@ -2,6 +2,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { AuthProvider } from '@/lib/auth-context';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
+import { Toaster as SonnerToaster } from '../components/ui/sonner';
 import { Toaster } from '../components/ui/toaster';
 import { SettingsProvider } from '../lib/settings-context';
 import './globals.css';
@@ -10,8 +11,8 @@ const _geist = Geist({ subsets: ['latin'] });
 const _geistMono = Geist_Mono({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Chat App',
-  description: 'AI Chat Application',
+  title: 'Tư vấn Pháp luật AI',
+  description: 'Ứng dụng tư vấn pháp luật bằng AI',
   generator: 'v0.app',
   icons: {
     icon: [
@@ -38,7 +39,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="vi" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -62,8 +63,8 @@ export default function RootLayout({
           <SettingsProvider>
             <AuthProvider>
               {children}
-              {/* Thêm Toaster ở đây để dùng chung toàn app */}
               <Toaster />
+              <SonnerToaster richColors position="top-right" />
             </AuthProvider>
           </SettingsProvider>
         </ThemeProvider>
