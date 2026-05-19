@@ -54,7 +54,7 @@ export function ShareModal({ isOpen, onClose, chatId }: ShareModalProps) {
 
     try {
       const data = await conversationService.generateShareLink(chatId);
-      const fullUrl = `${window.location.origin}/share/${data.shareId}/${data.token}`;
+      const fullUrl = `${window.location.origin}${data.shareUrl}`;
 
       setShareUrl(fullUrl);
       setStatus('ready');
