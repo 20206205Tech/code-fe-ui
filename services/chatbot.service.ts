@@ -7,12 +7,14 @@ export interface ChatSession {
   updated_at: string;
 }
 
-export interface ChatMessage {
+export interface APIChatMessage {
   id: string;
   role: 'human' | 'ai';
   voice_id: string | null;
   content: string;
   created_at: string;
+  reasoning_steps?: { content: string; step_order: number }[];
+  sources?: any[];
 }
 
 const CHATBOT_BASE = `/${CODE_CHATBOT_SERVICE_NAME}/chats`;
@@ -23,6 +25,6 @@ export const chatbotService = {
   },
 
   getChatMessages: (chatId: string) => {
-    return apiHelper.get<ChatMessage[]>(`${CHATBOT_BASE}/${chatId}`);
+    return apiHelper.get<APIChatMessage[]>(`${CHATBOT_BASE}/${chatId}`);
   },
 };

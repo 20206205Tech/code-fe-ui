@@ -38,6 +38,7 @@ interface ChatInputProps {
   onAgentState?: (isReasoning: boolean) => void;
   voiceId?: string;
   isMessageSending?: boolean;
+  useReasoning?: boolean;
 }
 
 export function ChatInput({
@@ -50,6 +51,7 @@ export function ChatInput({
   onAgentState,
   voiceId,
   isMessageSending = false,
+  useReasoning = false,
 }: ChatInputProps) {
   const [message, setMessage] = useState('');
   const [isListening, setIsListening] = useState(false);
@@ -546,7 +548,7 @@ export function ChatInput({
                   chatId={chatId || ''}
                   userId={user?.id || ''}
                   fileIds={docs.map((d) => d.id)}
-                  useReasoning={settings.use_reasoning}
+                  useReasoning={useReasoning}
                   voiceId={voiceId}
                   isVip={isVip}
                   onChatCreated={onChatCreated}

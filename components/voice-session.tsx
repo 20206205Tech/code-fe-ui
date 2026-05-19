@@ -41,10 +41,16 @@ interface VoiceSessionProps {
   useReasoning: boolean;
   voiceId?: string;
   isVip: boolean;
-  onMessage?: (role: string, content: string, isFinal: boolean, sources?: any[]) => void;
+  onMessage?: (
+    role: string,
+    content: string,
+    isFinal: boolean,
+    sources?: any[]
+  ) => void;
   onStatus?: (message: string, hidden?: boolean) => void;
   onAgentState?: (isReasoning: boolean) => void;
   disabled?: boolean;
+  onChatCreated?: (chatId: string) => void;
 }
 
 export interface VoiceSessionHandle {
@@ -62,7 +68,12 @@ export function VoiceSessionUI({
   onAgentState,
 }: {
   onDisconnect: () => void;
-  onMessage?: (role: string, content: string, isFinal: boolean, sources?: any[]) => void;
+  onMessage?: (
+    role: string,
+    content: string,
+    isFinal: boolean,
+    sources?: any[]
+  ) => void;
   onStatus?: (message: string, hidden?: boolean) => void;
   onAgentState?: (isReasoning: boolean) => void;
 }) {
@@ -77,7 +88,12 @@ export function VoiceSessionUI({
   useEffect(() => {
     if (!room) return;
 
-    const isDuplicate = (role: string, text: string, isFinal: boolean, hasSources: boolean = false) => {
+    const isDuplicate = (
+      role: string,
+      text: string,
+      isFinal: boolean,
+      hasSources: boolean = false
+    ) => {
       if (!isFinal) return false;
 
       // Nếu tin nhắn có chứa sources (từ Data Channel gửi sang), ta tuyệt đối KHÔNG chặn trùng lặp,
@@ -134,7 +150,10 @@ export function VoiceSessionUI({
           const text = (data.text || '').trim();
           const hasSources = !!(data.sources && data.sources.length > 0);
           // data.role: 'agent' hoặc 'user'
-          if (text && !isDuplicate(data.role, text, data.isFinal || false, hasSources)) {
+          if (
+            text &&
+            !isDuplicate(data.role, text, data.isFinal || false, hasSources)
+          ) {
             onMessage?.(data.role, text, data.isFinal || false, data.sources);
           }
         }
@@ -144,7 +163,7 @@ export function VoiceSessionUI({
         if (data.type === 'agent_state') {
           onAgentState?.(data.is_reasoning);
         }
-      } catch (e) { }
+      } catch (e) {}
     };
 
     room.on(RoomEvent.TranscriptionReceived, handleTranscription);
@@ -167,7 +186,8 @@ export function VoiceSessionUI({
   if (connectionState === ConnectionState.Connected) {
     const handleSendDev = (overrideText?: string) => {
       // Dùng giá trị overrideText nếu có (khi click nút gợi ý) hoặc devInput
-      const textToPublish = typeof overrideText === 'string' ? overrideText : devInput;
+      const textToPublish =
+        typeof overrideText === 'string' ? overrideText : devInput;
       if (!textToPublish.trim()) return;
 
       const encoder = new TextEncoder();
@@ -307,6 +327,19 @@ function MetadataSync({
     room,
   ]);
 
+  return null;
+}
+
+/**
+ * Component phụ trợ để lưu tham chiếu đến Room
+ */
+function RoomRefSetter({ roomRef }: { roomRef: React.MutableRefObject<any> }) {
+  const room = useRoomContext();
+  useEffect(() => {
+    if (room) {
+      roomRef.current = room;
+    }
+  }, [room, roomRef]);
   return null;
 }
 
@@ -465,8 +498,8 @@ export const VoiceSession = forwardRef<VoiceSessionHandle, VoiceSessionProps>(
             autoSubscribe: true,
           }}
           onDisconnected={handleEndSession}
-          onConnected={(room) => {
-            roomRef.current = room;
+          onConnected={() => {
+            // connection established
           }}
           onError={(err) => {
             console.error('LiveKit connection error:', err);
@@ -475,6 +508,7 @@ export const VoiceSession = forwardRef<VoiceSessionHandle, VoiceSessionProps>(
           }}
         >
           <RoomAudioRenderer />
+          <RoomRefSetter roomRef={roomRef} />
           <MetadataSync
             chatId={chatId}
             userId={userId}

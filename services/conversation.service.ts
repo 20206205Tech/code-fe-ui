@@ -7,8 +7,11 @@ import {
 import { cookieHelper } from '@/lib/cookie-helper';
 
 export interface StreamUpdate {
-  type: 'status' | 'content' | 'metadata';
-  message: any;
+  type: 'status' | 'content' | 'metadata' | 'status_update' | 'content_chunk';
+  message?: any;
+  content?: string;
+  sources?: any[];
+  full_answer?: string;
 }
 
 const CONVERSATION_BASE = `/${CODE_CONVERSATION_SERVICE_NAME}/chats`;
@@ -79,13 +82,13 @@ export const conversationService = {
         try {
           const parsed = JSON.parse(currentData);
           const update = parsed.data || parsed;
-          
+
           // Bỏ qua tin nhắn heartbeat
           if (update.type === 'heartbeat') {
             console.log('💓 Heartbeat received');
             return;
           }
-          
+
           onUpdate(update);
         } catch (e) {
           console.error('Error parsing stream chunk:', e);

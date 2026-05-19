@@ -283,7 +283,10 @@ function ChatContent() {
 
       // LỌC: Nếu Agent đang trong trạng thái suy luận, bỏ qua mọi transcription streaming
       if (role === 'agent' && isAgentReasoning) {
-        console.log('[VoiceFilter] Bỏ qua transcription vì Agent đang suy luận:', content);
+        console.log(
+          '[VoiceFilter] Bỏ qua transcription vì Agent đang suy luận:',
+          content
+        );
         return;
       }
 
@@ -302,12 +305,18 @@ function ChatContent() {
         if (lastMsg && lastMsg.role === messageRole) {
           const newMessages = [...prev];
           const lastTrimmed = lastMsg.content.trim();
-          
+
           let newContent = lastMsg.content;
           if (messageRole === 'assistant') {
             // Kiểm tra xem đây là transcription cuốn (incremental) hay là đoạn mới
-            if (trimmedContent.startsWith(lastTrimmed) || lastTrimmed.startsWith(trimmedContent)) {
-              newContent = trimmedContent.length >= lastTrimmed.length ? trimmedContent : lastTrimmed;
+            if (
+              trimmedContent.startsWith(lastTrimmed) ||
+              lastTrimmed.startsWith(trimmedContent)
+            ) {
+              newContent =
+                trimmedContent.length >= lastTrimmed.length
+                  ? trimmedContent
+                  : lastTrimmed;
             } else {
               // Nếu là đoạn mới hoàn toàn, ta cộng dồn với dấu cách
               newContent = lastMsg.content + ' ' + trimmedContent;
@@ -347,7 +356,7 @@ function ChatContent() {
     (status: string, hidden?: boolean) => {
       if (!status) return;
       const trimmedStatus = status.trim();
-      
+
       // Chỉ hiện spinner nếu không bị ẩn
       if (!hidden) setCurrentStatus(trimmedStatus);
 
@@ -457,23 +466,32 @@ function ChatContent() {
               const lastMsg = newMessages[lastIdx];
               if (lastMsg && lastMsg.role === 'assistant') {
                 const currentSteps = lastMsg.reasoning_steps || [];
-                if (!currentSteps.some(s => s.content === update.message)) {
+                if (!currentSteps.some((s) => s.content === update.message)) {
                   newMessages[lastIdx] = {
                     ...lastMsg,
                     reasoning_steps: [
                       ...currentSteps,
-                      { content: update.message, step_order: currentSteps.length + 1 },
+                      {
+                        content: update.message,
+                        step_order: currentSteps.length + 1,
+                      },
                     ],
                   };
                 }
               }
               return newMessages;
             });
-          } else if (update.type === 'content' || update.type === 'content_chunk') {
+          } else if (
+            update.type === 'content' ||
+            update.type === 'content_chunk'
+          ) {
             // Tắt trạng thái xoay (status) ngay khi bắt đầu nhận nội dung văn bản
             setCurrentStatus(null);
-            const chunk = typeof update.message === 'string' ? update.message : (update.message?.content || update.content || '');
-            
+            const chunk =
+              typeof update.message === 'string'
+                ? update.message
+                : update.message?.content || update.content || '';
+
             setMessages((prev) => {
               if (prev.length === 0) return prev;
               const newMessages = [...prev];
@@ -499,7 +517,10 @@ function ChatContent() {
                   ...lastMsg,
                   isStreaming: false,
                   sources: update.message?.sources || update.sources,
-                  content: update.message?.full_answer || update.full_answer || lastMsg.content,
+                  content:
+                    update.message?.full_answer ||
+                    update.full_answer ||
+                    lastMsg.content,
                 };
               }
               return newMessages;
@@ -563,7 +584,10 @@ function ChatContent() {
                   >
                     {isPersonasLoading || isHistoryLoading ? (
                       <>
-                        <Loader2 size={16} className="animate-spin text-slate-400" />
+                        <Loader2
+                          size={16}
+                          className="animate-spin text-slate-400"
+                        />
                         <span className="text-slate-400">Đang tải...</span>
                       </>
                     ) : !useReasoning ? (
@@ -721,31 +745,27 @@ function ChatContent() {
                 {settings.showExampleQuestions && (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-3xl mt-4">
                     {EXAMPLE_QUESTIONS.map((question, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => handleSendMessage(question)}
-                          disabled={
-                            isHistoryLoading ||
-                            isMessageSending
-                          }
-                          className={cn(
-                            'p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all text-left group',
-                            (isHistoryLoading ||
-                              isMessageSending) &&
-                              'opacity-60 cursor-not-allowed'
+                      <button
+                        key={idx}
+                        onClick={() => handleSendMessage(question)}
+                        disabled={isHistoryLoading || isMessageSending}
+                        className={cn(
+                          'p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all text-left group',
+                          (isHistoryLoading || isMessageSending) &&
+                            'opacity-60 cursor-not-allowed'
+                        )}
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-3 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                          {isMessageSending ? (
+                            <Loader2 size={16} className="animate-spin" />
+                          ) : (
+                            <MessageSquare size={16} />
                           )}
-                        >
-                          <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-3 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                            {isMessageSending ? (
-                              <Loader2 size={16} className="animate-spin" />
-                            ) : (
-                              <MessageSquare size={16} />
-                            )}
-                          </div>
-                          <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                            {question}
-                          </p>
-                        </button>
+                        </div>
+                        <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                          {question}
+                        </p>
+                      </button>
                     ))}
                   </div>
                 )}
@@ -759,7 +779,9 @@ function ChatContent() {
                       role={msg.role}
                       content={msg.content}
                       reasoning_steps={msg.reasoning_steps}
-                      status={idx === messages.length - 1 ? currentStatus : null}
+                      status={
+                        idx === messages.length - 1 ? currentStatus : null
+                      }
                       avatar={
                         msg.role === 'user'
                           ? user?.avatar
@@ -789,6 +811,7 @@ function ChatContent() {
               isMessageSending={isMessageSending}
               chatId={activeChatId}
               voiceId={selectedPersona?.voice_id}
+              useReasoning={useReasoning}
               onChatCreated={handleChatCreated}
               onVoiceMessage={handleVoiceMessage}
               onVoiceStatus={handleVoiceStatus}
