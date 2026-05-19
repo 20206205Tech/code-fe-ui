@@ -97,11 +97,12 @@ export default function PublicSharePage() {
       <main className="max-w-4xl mx-auto py-8 px-4 md:px-0">
         <div className="space-y-4">
           {messages.map((msg, idx) => (
-            <ChatMessage
+          <ChatMessage
               key={idx}
               role={msg.role === 'human' ? 'user' : 'assistant'}
               content={msg.content}
               sources={msg.sources}
+              reasoning_steps={msg.reasoning_steps}
             />
           ))}
         </div>
