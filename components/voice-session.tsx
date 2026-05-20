@@ -1,8 +1,8 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import { SUGGESTION_VOICE, VOICE_SUGGESTIONS } from '@/config/voice.config';
+import { cn } from '@/lib/utils';
 import { conversationService } from '@/services/conversation.service';
 import { AudioLines, Loader2, MessageSquare, Send } from 'lucide-react';
 import {
@@ -56,6 +56,7 @@ interface VoiceSessionProps {
 export interface VoiceSessionHandle {
   sendTextMessage: (text: string) => boolean;
   isActive: boolean;
+  refreshMetadata?: (fileIds?: string[]) => void;
 }
 
 /**
@@ -282,19 +283,47 @@ function MetadataSync({
   fileIds,
   useReasoning,
   voiceId,
+  pendingMetadataRef,
 }: {
   chatId: string;
   userId: string;
   fileIds: string[];
   useReasoning: boolean;
   voiceId?: string;
+  pendingMetadataRef?: React.MutableRefObject<string | null>;
 }) {
   const room = useRoomContext();
   const connectionState = useConnectionState();
   const prevMetadataRef = useRef<string>('');
 
+  // Reset metadata tracking khi disconnect để đảm bảo metadata được gửi lại khi reconnect
+  useEffect(() => {
+    if (connectionState === ConnectionState.Disconnected) {
+      prevMetadataRef.current = '';
+      console.log('[MetadataSync] Reset metadata tracking sau khi disconnect');
+    }
+  }, [connectionState]);
+
+  // Gửi metadata ngay khi room vừa kết nối
   useEffect(() => {
     if (room && connectionState === ConnectionState.Connected) {
+      // If an external pending metadata exists (requested while disconnected), send it first
+      if (pendingMetadataRef && pendingMetadataRef.current) {
+        const pending = pendingMetadataRef.current;
+        if (pending !== prevMetadataRef.current) {
+          prevMetadataRef.current = pending;
+          console.log(
+            '[MetadataSync] Gửi pending metadata lên LiveKit',
+            pending
+          );
+          room.localParticipant.setMetadata(pending).catch((err) => {
+            console.error('Lỗi cập nhật pending metadata sang LiveKit:', err);
+          });
+        }
+        pendingMetadataRef.current = null;
+        return;
+      }
+
       const newMetadata = JSON.stringify({
         chat_id: chatId,
         user_id: userId,
@@ -303,24 +332,41 @@ function MetadataSync({
         voice_id: voiceId,
       });
 
-      // Chỉ gửi lên LiveKit nếu thực sự có sự thay đổi về mặt giá trị
-      if (newMetadata === prevMetadataRef.current) {
+      // Luôn gửi metadata khi room vừa kết nối hoặc khi dependencies thay đổi
+      const shouldUpdate = newMetadata !== prevMetadataRef.current;
+
+      if (!shouldUpdate) {
+        console.log('[MetadataSync] Metadata không thay đổi, skip update');
         return;
       }
 
       prevMetadataRef.current = newMetadata;
 
-      console.log(
-        '--- [MetadataSync] Đang đồng bộ Metadata mới sang LiveKit ---'
-      );
-      room.localParticipant.setMetadata(newMetadata).catch((err) => {
-        console.error('Lỗi cập nhật metadata sang LiveKit:', err);
+      console.log('[MetadataSync] Gửi metadata lên LiveKit', {
+        chatId,
+        userId,
+        file_ids: fileIds,
+        use_reasoning: useReasoning,
+        voice_id: voiceId,
       });
+
+      // Gửi metadata
+      room.localParticipant
+        .setMetadata(newMetadata)
+        .then(() => {
+          console.log('[MetadataSync] ✅ Metadata đã được gửi thành công');
+        })
+        .catch((err) => {
+          console.error(
+            '[MetadataSync] ❌ Lỗi cập nhật metadata sang LiveKit:',
+            err
+          );
+        });
     }
   }, [
     chatId,
     userId,
-    JSON.stringify(fileIds), // Tránh so sánh tham chiếu mảng (reference array)
+    JSON.stringify(fileIds),
     useReasoning,
     voiceId,
     connectionState,
@@ -369,6 +415,36 @@ export const VoiceSession = forwardRef<VoiceSessionHandle, VoiceSessionProps>(
 
     // Tham chiếu đến room hiện tại để gửi dữ liệu
     const roomRef = useRef<any>(null);
+    // Nếu refreshMetadata được gọi khi room chưa connected, lưu metadata vào đây để gửi khi connect
+    const pendingMetadataRef = useRef<string | null>(null);
+
+    // Refs để luôn đọc được giá trị props mới nhất trong callbacks/effects (tránh stale closure)
+    const chatIdRef = useRef(chatId);
+    const userIdRef = useRef(userId);
+    const fileIdsRef = useRef(fileIds);
+    const useReasoningRef = useRef(useReasoning);
+    const voiceIdRef = useRef(voiceId);
+    const tokenRef = useRef(token);
+    const serverUrlRef = useRef(serverUrl);
+
+    // Đồng bộ refs với props/state mới nhất mỗi render (sync trực tiếp, không qua useEffect)
+    chatIdRef.current = chatId;
+    userIdRef.current = userId;
+    fileIdsRef.current = fileIds;
+    useReasoningRef.current = useReasoning;
+    voiceIdRef.current = voiceId;
+    tokenRef.current = token;
+    serverUrlRef.current = serverUrl;
+
+    // Helper: build metadata JSON từ refs (luôn dùng giá trị mới nhất)
+    const buildMetadata = (overrideFileIds?: string[]) =>
+      JSON.stringify({
+        chat_id: chatIdRef.current,
+        user_id: userIdRef.current,
+        file_ids: overrideFileIds ?? fileIdsRef.current,
+        use_reasoning: useReasoningRef.current,
+        voice_id: voiceIdRef.current,
+      });
 
     // Xuất hàm gửi tin nhắn ra ngoài cho ChatInput dùng
     useImperativeHandle(ref, () => ({
@@ -392,16 +468,54 @@ export const VoiceSession = forwardRef<VoiceSessionHandle, VoiceSessionProps>(
         return false;
       },
       isActive: !!token && !!serverUrl,
+      // Force refresh metadata on demand (used by ChatInput after upload)
+      refreshMetadata: (fileIdsParam?: string[]) => {
+        try {
+          const room = roomRef.current;
+          const metadata = buildMetadata(fileIdsParam);
+
+          if (!room || room.state !== ConnectionState.Connected) {
+            pendingMetadataRef.current = metadata;
+            console.log(
+              '[VoiceSession] refreshMetadata: queued metadata (room not connected)',
+              metadata
+            );
+            return;
+          }
+
+          room.localParticipant
+            .setMetadata(metadata)
+            .then(() => {
+              console.log(
+                '[VoiceSession] refreshMetadata: metadata sent',
+                metadata
+              );
+            })
+            .catch((err: any) => {
+              console.error('[VoiceSession] refreshMetadata error:', err);
+            });
+        } catch (err) {
+          console.error(
+            '[VoiceSession] refreshMetadata unexpected error:',
+            err
+          );
+        }
+      },
     }));
 
-    // Tự động ngắt kết nối khi chuyển chat
+    // Tự động ngắt kết nối khi chuyển chat (KHÔNG ngắt khi đổi persona)
+    // Khi voiceId thay đổi, MetadataSync sẽ tự động gửi metadata mới lên LiveKit
     useEffect(() => {
       if (token || serverUrl) {
         handleEndSession();
       }
-    }, [chatId]);
+    }, [chatId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleStartSession = async () => {
+      console.log(
+        '[VoiceSession] 🎤 Bắt đầu phiên thoại với voiceId:',
+        voiceId
+      );
       if (!isVip) {
         toast.info(
           'Vui lòng nâng cấp gói cước để sử dụng tính năng hội thoại thoại.'
@@ -432,6 +546,7 @@ export const VoiceSession = forwardRef<VoiceSessionHandle, VoiceSessionProps>(
           voiceId
         );
         if (response && response.token) {
+          console.log('[VoiceSession] ✅ Token nhận được, kết nối LiveKit');
           setToken(response.token);
           setServerUrl(response.serverUrl);
         } else {
@@ -446,6 +561,7 @@ export const VoiceSession = forwardRef<VoiceSessionHandle, VoiceSessionProps>(
     };
 
     const handleEndSession = () => {
+      console.log('[VoiceSession] ❌ Kết thúc phiên thoại');
       setToken(null);
       setServerUrl(null);
       setActiveSessionChatId(null);
@@ -515,6 +631,7 @@ export const VoiceSession = forwardRef<VoiceSessionHandle, VoiceSessionProps>(
             fileIds={fileIds}
             useReasoning={useReasoning}
             voiceId={voiceId}
+            pendingMetadataRef={pendingMetadataRef}
           />
           <VoiceSessionUI
             onDisconnect={handleEndSession}

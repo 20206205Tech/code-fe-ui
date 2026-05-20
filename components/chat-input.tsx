@@ -1,31 +1,32 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  Send,
-  Mic,
-  MicOff,
-  Loader2,
-  Paperclip,
-  CheckCircle2,
-  X,
-  FileText,
-  Trash2,
-  Check,
-  RefreshCw,
-} from 'lucide-react';
-import { useSettings } from '@/lib/settings-context';
-import { useAuth } from '@/lib/auth-context';
-import { documentService, DocumentInfo } from '@/services/document.service';
-import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useAuth } from '@/lib/auth-context';
+import { useSettings } from '@/lib/settings-context';
+import { cn } from '@/lib/utils';
+import { DocumentInfo, documentService } from '@/services/document.service';
+import {
+  Check,
+  CheckCircle2,
+  FileText,
+  Loader2,
+  Mic,
+  MicOff,
+  Paperclip,
+  RefreshCw,
+  Send,
+  Trash2,
+  X,
+} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
+import type { VoiceSessionHandle } from './voice-session';
 import { VoiceSession } from './voice-session';
 
 interface ChatInputProps {
@@ -67,6 +68,7 @@ export function ChatInput({
 
   const [isUploading, setIsUploading] = useState(false);
   const [docs, setDocs] = useState<DocumentInfo[]>([]);
+  const voiceRef = useRef<VoiceSessionHandle | null>(null);
   const pollingIntervals = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const prevChatIdRef = useRef<string | null | undefined>(chatId);
 
@@ -180,7 +182,7 @@ export function ChatInput({
 
     setIsUploading(true);
 
-    // Create optimistic docs
+    // Create optimistic docs and keep a local copy for synchronous updates
     const tempDocs: DocumentInfo[] = files.map((file) => ({
       id: `temp-${Date.now()}-${file.name}`,
       filename: file.name,
@@ -190,7 +192,8 @@ export function ChatInput({
       has_summary: false,
     }));
 
-    setDocs((prev) => [...prev, ...tempDocs]);
+    let currentDocs: DocumentInfo[] = [...docs, ...tempDocs];
+    setDocs(currentDocs);
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -207,16 +210,18 @@ export function ChatInput({
           has_summary: false,
         };
 
-        // Replace temp doc with real doc
-        setDocs((prev) => prev.map((d) => (d.id === tempId ? newDoc : d)));
+        // Replace temp doc with real doc in our local copy and update state
+        currentDocs = currentDocs.map((d) => (d.id === tempId ? newDoc : d));
+        setDocs(currentDocs);
         startPolling(data.doc_id);
       } catch (error) {
         toast.error(`Tải lên ${file.name} thất bại.`);
         console.error('Upload error:', error);
         // Update status to FAILED for the specific temp doc
-        setDocs((prev) =>
-          prev.map((d) => (d.id === tempId ? { ...d, status: 'FAILED' } : d))
+        currentDocs = currentDocs.map((d) =>
+          d.id === tempId ? { ...d, status: 'FAILED' } : d
         );
+        setDocs(currentDocs);
       }
     }
 
@@ -556,10 +561,18 @@ export function ChatInput({
                 <VoiceSession
                   chatId={chatId || ''}
                   userId={user?.id || ''}
-                  fileIds={docs.map((d) => d.id)}
+                  fileIds={docs
+                    .filter(
+                      (d) =>
+                        d.has_file ||
+                        d.status === 'UPLOADED' ||
+                        d.status === 'COMPLETED'
+                    )
+                    .map((d) => d.id)}
                   useReasoning={useReasoning}
                   voiceId={voiceId}
                   isVip={isVip}
+                  ref={voiceRef}
                   onChatCreated={onChatCreated}
                   onMessage={onVoiceMessage}
                   onStatus={onVoiceStatus}
