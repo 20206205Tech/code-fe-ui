@@ -1,6 +1,3 @@
-// export const SUGGESTION_VOICE = false;
-export const SUGGESTION_VOICE = true;
-
 export const VOICE_SUGGESTIONS = [
   'Hãy giới thiệu về bạn',
   'Hướng dẫn đăng ký tạm trú',

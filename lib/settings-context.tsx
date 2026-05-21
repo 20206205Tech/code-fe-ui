@@ -13,6 +13,7 @@ const SETTING_KEYS = {
   SHOW_EXAMPLE_QUESTIONS: 'show_example_questions',
   SELECTED_PERSONA_ID: 'selected_persona_id',
   AUTO_EXPAND_REASONING: 'auto_expand_reasoning',
+  SHOW_VOICE_TEXT_SUGGESTIONS: 'show_voice_text_suggestions',
 } as const;
 
 interface Settings {
@@ -20,6 +21,7 @@ interface Settings {
   showExampleQuestions: boolean;
   selectedPersonaId?: string;
   autoExpandReasoning: boolean;
+  showVoiceSuggestions: boolean;
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -27,6 +29,7 @@ const DEFAULT_SETTINGS: Settings = {
   showExampleQuestions: true,
   selectedPersonaId: undefined,
   autoExpandReasoning: true,
+  showVoiceSuggestions: false,
 };
 
 interface SettingsContextType {
@@ -61,6 +64,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             parsed.autoExpandReasoning !== undefined
               ? parsed.autoExpandReasoning
               : prev.autoExpandReasoning,
+          showVoiceSuggestions:
+            parsed.showVoiceSuggestions !== undefined
+              ? parsed.showVoiceSuggestions
+              : prev.showVoiceSuggestions,
         }));
       } catch (e) {
         console.error('Lỗi parse settings:', e);
@@ -82,6 +89,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             newSettings.selectedPersonaId = item.value;
           if (item.key === SETTING_KEYS.AUTO_EXPAND_REASONING)
             newSettings.autoExpandReasoning = item.value === 'true';
+          if (item.key === SETTING_KEYS.SHOW_VOICE_TEXT_SUGGESTIONS)
+            newSettings.showVoiceSuggestions = item.value === 'true';
         });
 
         const updated = { ...settings, ...newSettings };
@@ -129,6 +138,12 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         apiPayload.push({
           key: SETTING_KEYS.AUTO_EXPAND_REASONING,
           value: String(newSettings.autoExpandReasoning),
+        });
+      }
+      if (newSettings.showVoiceSuggestions !== undefined) {
+        apiPayload.push({
+          key: SETTING_KEYS.SHOW_VOICE_TEXT_SUGGESTIONS,
+          value: String(newSettings.showVoiceSuggestions),
         });
       }
 
