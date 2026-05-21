@@ -1,8 +1,9 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { SUGGESTION_VOICE, VOICE_SUGGESTIONS } from '@/config/voice.config';
+import { VOICE_SUGGESTIONS } from '@/config/voice.config';
 import { cn } from '@/lib/utils';
+import { useSettings } from '@/lib/settings-context';
 import { conversationService } from '@/services/conversation.service';
 import { AudioLines, Loader2, MessageSquare, Send } from 'lucide-react';
 import {
@@ -81,6 +82,7 @@ export function VoiceSessionUI({
   const connectionState = useConnectionState();
   const room = useRoomContext();
   const [devInput, setDevInput] = useState('');
+  const { settings } = useSettings();
 
   const lastProcessedFinalText = useRef<Record<string, string>>({});
   const lastProcessedTime = useRef<Record<string, number>>({});
@@ -185,7 +187,7 @@ export function VoiceSessionUI({
   }
 
   if (connectionState === ConnectionState.Connected) {
-    const handleSendDev = (overrideText?: string) => {
+    const handleSendVoiceText = (overrideText?: string) => {
       // Dùng giá trị overrideText nếu có (khi click nút gợi ý) hoặc devInput
       const textToPublish =
         typeof overrideText === 'string' ? overrideText : devInput;
@@ -208,44 +210,43 @@ export function VoiceSessionUI({
 
     return (
       <div className="flex flex-col items-end gap-2 relative">
-        {/* Chỉ hiển thị ô nhập liệu dev này trong môi trường development */}
-        <div className="absolute bottom-full mb-3 right-0 flex flex-col gap-2 bg-white dark:bg-slate-900 p-2 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 animate-in fade-in slide-in-from-bottom-2 duration-300 z-50 min-w-[320px]">
-          <div className="flex items-center gap-2">
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-1.5 rounded-lg shrink-0">
-              <MessageSquare size={14} className="text-blue-600" />
+        {settings.showVoiceSuggestions && (
+          <div className="absolute bottom-full mb-3 right-0 flex flex-col gap-2 bg-white dark:bg-slate-900 p-2 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 animate-in fade-in slide-in-from-bottom-2 duration-300 z-50 min-w-[320px]">
+            <div className="flex items-center gap-2">
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-1.5 rounded-lg shrink-0">
+                <MessageSquare size={14} className="text-blue-600" />
+              </div>
+              <input
+                type="text"
+                value={devInput}
+                onChange={(e) => setDevInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSendVoiceText()}
+                placeholder="Nhập nội dung muốn 'nói'..."
+                className="flex-1 bg-transparent border-none outline-none text-sm placeholder:text-slate-400 dark:text-slate-200 min-w-0"
+                autoFocus
+              />
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 shrink-0"
+                onClick={() => handleSendVoiceText()}
+              >
+                <Send size={14} />
+              </Button>
             </div>
-            <input
-              type="text"
-              value={devInput}
-              onChange={(e) => setDevInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSendDev()}
-              placeholder="Nhập nội dung muốn 'nói'..."
-              className="flex-1 bg-transparent border-none outline-none text-sm placeholder:text-slate-400 dark:text-slate-200 min-w-0"
-              autoFocus
-            />
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-7 w-7 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 shrink-0"
-              onClick={() => handleSendDev()}
-            >
-              <Send size={14} />
-            </Button>
-          </div>
-          {SUGGESTION_VOICE && (
             <div className="flex items-center gap-1.5 flex-wrap px-1">
               {VOICE_SUGGESTIONS.map((suggestion) => (
                 <button
                   key={suggestion}
-                  onClick={() => handleSendDev(suggestion)}
+                  onClick={() => handleSendVoiceText(suggestion)}
                   className="text-[11px] px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors border border-slate-200 dark:border-slate-700"
                 >
                   {suggestion}
                 </button>
               ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         <div className="flex items-center gap-2">
           <TooltipProvider>
