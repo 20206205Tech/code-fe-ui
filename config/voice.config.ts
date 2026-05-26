@@ -5,4 +5,7 @@ export const VOICE_SUGGESTIONS = [
   // 'Hướng dẫn nộp phạt giao thông',
   // 'Hướng dẫn làm CCCD',
   // 'Hướng dẫn làm hộ chiếu',
+  'Có',
+  'Không',
+  'Tóm tắt nội dung của văn bản 67/2006/QH11',
 ];
