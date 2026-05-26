@@ -345,12 +345,18 @@ function ChatContent() {
         const lastIdx = prev.length - 1;
         const lastMsg = lastIdx >= 0 ? prev[lastIdx] : null;
 
-        // Nếu cùng role VÀ (tin nhắn cuối đang ở trạng thái streaming HOẶC tin nhắn mới có chứa sources/metadata để cập nhật)
-        if (
+        // Kiểm tra xem tin nhắn nhận được có thuộc về lượt trò chuyện hiện tại không
+        const isSameTurn =
           lastMsg &&
           lastMsg.role === messageRole &&
-          (lastMsg.isStreaming || sources || pending_confirmation)
-        ) {
+          (lastMsg.isStreaming ||
+            lastMsg.content.trim() === trimmedContent ||
+            trimmedContent.startsWith(lastMsg.content.trim()) ||
+            lastMsg.content.trim().startsWith(trimmedContent) ||
+            !!sources ||
+            !!pending_confirmation);
+
+        if (isSameTurn) {
           const newMessages = [...prev];
           const lastTrimmed = lastMsg.content.trim();
 
