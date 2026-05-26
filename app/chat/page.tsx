@@ -51,13 +51,15 @@ interface Message {
   sources?: any[];
   voice_id?: string | null;
   reasoning_steps?: { content: string; step_order: number }[];
+  pending_confirmation?: boolean;
 }
 
 const EXAMPLE_QUESTIONS = [
   'Xin chào. Bạn có khỏe không?',
-  'Tóm tắt nội dung của văn bản 009/SLT.',
+  'Tóm tắt nội dung của văn bản 67/2006/QH11.',
   'Về quê họ hàng chơi có phải đăng ký tạm trú không?',
   // 'Quy định về xin giấy phép lao động cho người nước ngoài?',
+  // 'Tóm tắt nội dung của văn bản XYZ (demo)',
 ];
 
 function ChatContent() {
@@ -101,7 +103,9 @@ function ChatContent() {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isBookmarkModalOpen, setIsBookmarkModalOpen] = useState(false);
 
-  const [useReasoning, setUseReasoning] = useState(false);
+  const useReasoning = settings.useReasoning;
+  const setUseReasoning = (val: boolean) =>
+    updateSettings({ useReasoning: val });
   const { subscription } = useAuth();
   const isVip = subscription?.has_active_subscription === true;
 
@@ -539,6 +543,10 @@ function ChatContent() {
                     update.message?.full_answer ||
                     update.full_answer ||
                     lastMsg.content,
+                  pending_confirmation:
+                    update.message?.pending_confirmation ||
+                    update.pending_confirmation ||
+                    false,
                 };
               }
               return newMessages;
@@ -809,6 +817,10 @@ function ChatContent() {
                       isStreaming={msg.isStreaming}
                       sources={msg.sources}
                       voice_id={msg.voice_id}
+                      pending_confirmation={
+                        msg.pending_confirmation && idx === messages.length - 1
+                      }
+                      onConfirm={(choice) => handleSendMessage(choice)}
                     />
                   </div>
                 ))}

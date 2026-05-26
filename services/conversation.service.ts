@@ -12,6 +12,7 @@ export interface StreamUpdate {
   content?: string;
   sources?: any[];
   full_answer?: string;
+  pending_confirmation?: boolean;
 }
 
 const CONVERSATION_BASE = `/${CODE_CONVERSATION_SERVICE_NAME}/chats`;
@@ -162,10 +163,12 @@ export const conversationService = {
 
   // Share methods
   generateShareLink: (chatId: string) =>
-    apiHelper.post<{ shareId: string; chatId: string; status: string; shareUrl: string }>(
-      `${SHARE_BASE}`,
-      { chat_id: chatId }
-    ),
+    apiHelper.post<{
+      shareId: string;
+      chatId: string;
+      status: string;
+      shareUrl: string;
+    }>(`${SHARE_BASE}`, { chat_id: chatId }),
 
   getMySharedChats: (skip = 0, limit = 100) => {
     return apiHelper.get<any>(`${SHARE_BASE}/me`, {
