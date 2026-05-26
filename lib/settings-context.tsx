@@ -14,6 +14,7 @@ const SETTING_KEYS = {
   SELECTED_PERSONA_ID: 'selected_persona_id',
   AUTO_EXPAND_REASONING: 'auto_expand_reasoning',
   SHOW_VOICE_TEXT_SUGGESTIONS: 'show_voice_text_suggestions',
+  USE_REASONING: 'use_reasoning',
 } as const;
 
 interface Settings {
@@ -22,6 +23,7 @@ interface Settings {
   selectedPersonaId?: string;
   autoExpandReasoning: boolean;
   showVoiceSuggestions: boolean;
+  useReasoning: boolean;
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -30,6 +32,7 @@ const DEFAULT_SETTINGS: Settings = {
   selectedPersonaId: undefined,
   autoExpandReasoning: true,
   showVoiceSuggestions: false,
+  useReasoning: false,
 };
 
 interface SettingsContextType {
@@ -68,6 +71,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             parsed.showVoiceSuggestions !== undefined
               ? parsed.showVoiceSuggestions
               : prev.showVoiceSuggestions,
+          useReasoning:
+            parsed.useReasoning !== undefined
+              ? parsed.useReasoning
+              : prev.useReasoning,
         }));
       } catch (e) {
         console.error('Lỗi parse settings:', e);
@@ -91,6 +98,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             newSettings.autoExpandReasoning = item.value === 'true';
           if (item.key === SETTING_KEYS.SHOW_VOICE_TEXT_SUGGESTIONS)
             newSettings.showVoiceSuggestions = item.value === 'true';
+          if (item.key === SETTING_KEYS.USE_REASONING)
+            newSettings.useReasoning = item.value === 'true';
         });
 
         const updated = { ...settings, ...newSettings };
@@ -144,6 +153,12 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         apiPayload.push({
           key: SETTING_KEYS.SHOW_VOICE_TEXT_SUGGESTIONS,
           value: String(newSettings.showVoiceSuggestions),
+        });
+      }
+      if (newSettings.useReasoning !== undefined) {
+        apiPayload.push({
+          key: SETTING_KEYS.USE_REASONING,
+          value: String(newSettings.useReasoning),
         });
       }
 

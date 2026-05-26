@@ -1,4 +1,14 @@
-import { Bot, User as UserIcon, ChevronDown, ChevronUp, Search, Activity } from 'lucide-react';
+import {
+  Bot,
+  User as UserIcon,
+  ChevronDown,
+  ChevronUp,
+  Search,
+  Activity,
+  Check,
+  X,
+  ExternalLink,
+} from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { personaService } from '@/services/persona.service';
@@ -23,6 +33,8 @@ interface ChatMessageProps {
   voice_id?: string | null;
   reasoning_steps?: { content: string; step_order: number; hidden?: boolean }[];
   status?: string | null;
+  pending_confirmation?: boolean;
+  onConfirm?: (choice: string) => void;
 }
 
 export function ChatMessage({
@@ -35,6 +47,8 @@ export function ChatMessage({
   voice_id,
   reasoning_steps,
   status,
+  pending_confirmation,
+  onConfirm,
 }: ChatMessageProps) {
   const isUser = role === 'user';
   const { settings } = useSettings();
@@ -44,7 +58,11 @@ export function ChatMessage({
 
   // Tự động mở rộng khi có bước suy luận mới (đặc biệt hữu ích cho Voice) nếu cài đặt cho phép
   useEffect(() => {
-    if (settings.autoExpandReasoning && reasoning_steps && reasoning_steps.length > prevStepsLength.current) {
+    if (
+      settings.autoExpandReasoning &&
+      reasoning_steps &&
+      reasoning_steps.length > prevStepsLength.current
+    ) {
       setShowSteps(true);
     }
     prevStepsLength.current = reasoning_steps?.length || 0;
@@ -151,29 +169,40 @@ export function ChatMessage({
         >
           {/* Reasoning Steps Section (Now at the top) */}
           {!isUser && reasoning_steps && reasoning_steps.length > 0 && (
-            <div className={cn(
-              "mb-4 pb-3 border-b border-slate-100 dark:border-white/5",
-              !showSteps && "pb-0 border-b-0"
-            )}>
+            <div
+              className={cn(
+                'mb-4 pb-3 border-b border-slate-100 dark:border-white/5',
+                !showSteps && 'pb-0 border-b-0'
+              )}
+            >
               <button
                 onClick={() => setShowSteps(!showSteps)}
                 className="flex items-center gap-2 text-[11px] font-semibold text-blue-600/70 dark:text-blue-400/70 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
               >
                 <Search size={12} />
-                {showSteps ? 'Ẩn chi tiết các bước' : 'Xem chi tiết các bước xử lý'}
-                {showSteps ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                {showSteps
+                  ? 'Ẩn chi tiết các bước'
+                  : 'Xem chi tiết các bước xử lý'}
+                {showSteps ? (
+                  <ChevronUp size={12} />
+                ) : (
+                  <ChevronDown size={12} />
+                )}
               </button>
-              
+
               {showSteps && (
                 <div className="mt-3 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                  {reasoning_steps.filter(s => !s.hidden).map((step, i) => (
-                    <div key={i} className="flex items-start gap-3 text-[12px] text-slate-500 dark:text-slate-400 bg-slate-50/50 dark:bg-white/[0.02] p-2 rounded-lg border border-slate-100 dark:border-white/5">
-                      <div className="mt-1 w-1.5 h-1.5 rounded-full bg-blue-400/50 flex-shrink-0" />
-                      <span className="leading-relaxed">
-                        {step.content}
-                      </span>
-                    </div>
-                  ))}
+                  {reasoning_steps
+                    .filter((s) => !s.hidden)
+                    .map((step, i) => (
+                      <div
+                        key={i}
+                        className="flex items-start gap-3 text-[12px] text-slate-500 dark:text-slate-400 bg-slate-50/50 dark:bg-white/[0.02] p-2 rounded-lg border border-slate-100 dark:border-white/5"
+                      >
+                        <div className="mt-1 w-1.5 h-1.5 rounded-full bg-blue-400/50 flex-shrink-0" />
+                        <span className="leading-relaxed">{step.content}</span>
+                      </div>
+                    ))}
                 </div>
               )}
             </div>
@@ -199,6 +228,28 @@ export function ChatMessage({
             )}
           </div>
 
+          {/* Confirmation Actions */}
+          {pending_confirmation && !isStreaming && (
+            <div className="mt-4 flex flex-wrap gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <button
+                type="button"
+                onClick={() => onConfirm?.('Có')}
+                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold rounded-xl text-sm shadow-md shadow-emerald-500/10 hover:shadow-emerald-500/20 active:scale-95 transition-all duration-200"
+              >
+                <Check size={16} />
+                <span>Có, tiếp tục</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onConfirm?.('Không')}
+                className="flex items-center gap-2 px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-xl text-sm border border-slate-200/50 dark:border-white/5 active:scale-95 transition-all duration-200"
+              >
+                <X size={16} />
+                <span>Không, dừng lại</span>
+              </button>
+            </div>
+          )}
+
           {/* Sources Section */}
           {sources && sources.length > 0 && (
             <div className="mt-5 pt-4 border-t border-slate-200/60 dark:border-white/10 space-y-3">
@@ -209,34 +260,50 @@ export function ChatMessage({
                 </p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {sources.map((src, i) => (
-                  <div
-                    key={i}
-                    className="group/source flex flex-col gap-1.5 p-3 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/50 dark:border-white/5 hover:border-blue-500/30 hover:bg-blue-50/30 dark:hover:bg-blue-500/5 transition-all duration-300"
-                  >
-                    <span className="font-semibold text-[12px] text-blue-600 dark:text-blue-400 line-clamp-1 group-hover/source:text-blue-500 transition-colors">
-                      {src.source}
-                    </span>
-                    <div className="flex flex-wrap gap-2 text-[10px] text-slate-500 dark:text-slate-500">
-                      {src.legal_status && (
-                        <span className="bg-slate-200/50 dark:bg-white/5 px-2 py-0.5 rounded-full border border-slate-200/30 dark:border-white/5 text-slate-600 dark:text-slate-400">
-                          {src.legal_status}
+                {sources.map((src, i) => {
+                  const isUrl =
+                    src.source.startsWith('http://') ||
+                    src.source.startsWith('https://');
+
+                  const linkUrl = isUrl ? src.source : null;
+                  return (
+                    <div
+                      key={i}
+                      className="group/source flex flex-col gap-1.5 p-3 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/50 dark:border-white/5 hover:border-blue-500/30 hover:bg-blue-50/30 dark:hover:bg-blue-500/5 transition-all duration-300"
+                    >
+                      {linkUrl ? (
+                        <a
+                          href={linkUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-semibold text-[12px] text-blue-600 dark:text-blue-400 line-clamp-1 group-hover/source:text-blue-500 hover:underline transition-colors flex items-center gap-1"
+                        >
+                          {src.source}
+                          <ExternalLink size={12} className="flex-shrink-0" />
+                        </a>
+                      ) : (
+                        <span className="font-semibold text-[12px] text-blue-600 dark:text-blue-400 line-clamp-1 group-hover/source:text-blue-500 transition-colors">
+                          {src.source}
                         </span>
                       )}
-                      {src.retrieval_type && (
-                        <span className="opacity-70 italic">
-                          Type: {
-                            src.retrieval_type === 'uploaded_file' ? 'tài liệu cá nhân' :
-                            src.retrieval_type === 'primary' ? 'vbpl' :
-                            src.retrieval_type === 'related' ? 'vbpl' :
-                            src.retrieval_type === 'phap_dien' ? 'pháp điển' :
-                            src.retrieval_type
-                          }
-                        </span>
-                      )}
+                      <div className="flex flex-wrap gap-2 text-[10px] text-slate-500 dark:text-slate-500">
+                        {src.retrieval_type && (
+                          <span className="bg-slate-200/50 dark:bg-white/5 px-2 py-0.5 rounded-full border border-slate-200/30 dark:border-white/5 text-slate-600 dark:text-slate-400">
+                            {src.retrieval_type === 'uploaded_file'
+                              ? 'Tài liệu cá nhân'
+                              : src.retrieval_type === 'primary'
+                                ? 'VBPL (Văn bản pháp luật)'
+                                : src.retrieval_type === 'related'
+                                  ? 'VBPL (Văn bản pháp luật)'
+                                  : src.retrieval_type === 'phap_dien'
+                                    ? 'Pháp điển'
+                                    : src.retrieval_type}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
