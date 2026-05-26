@@ -55,10 +55,10 @@ interface Message {
 }
 
 const EXAMPLE_QUESTIONS = [
-  'Xin chào. Bạn có khỏe không?',
-  'Tóm tắt nội dung của văn bản 67/2006/QH11.',
-  'Về quê họ hàng chơi có phải đăng ký tạm trú không?',
-  // 'Quy định về xin giấy phép lao động cho người nước ngoài?',
+  'Xin chào. Bạn có khỏe không',
+  'Tóm tắt nội dung của văn bản 67/2006/QH11',
+  'Về quê họ hàng chơi có phải đăng ký tạm trú không',
+  // 'Quy định về xin giấy phép lao động cho người nước ngoài',
   // 'Tóm tắt nội dung của văn bản XYZ (demo)',
 ];
 
@@ -256,13 +256,29 @@ function ChatContent() {
     setIsHistoryLoading(true);
     try {
       const history = await chatbotService.getChatMessages(chatId);
-      const mappedMessages: Message[] = (history || []).map((m) => ({
-        role: m.role === 'human' ? 'user' : 'assistant',
-        content: m.content,
-        voice_id: m.voice_id,
-        reasoning_steps: m.reasoning_steps,
-        sources: m.sources,
-      }));
+      const mappedMessages: Message[] = (history || []).map((m, idx) => {
+        const isLastMsg = idx === (history || []).length - 1;
+        const hasPendingFlag =
+          (m as any).pending_confirmation ||
+          (m as any).metadata?.pending_confirmation;
+
+        // Smart fallback: Tự động phục hồi nút nếu tin nhắn AI cuối cùng có nội dung hỏi tiếp tục hoặc chọn (Có/Không)
+        const inferPending =
+          isLastMsg &&
+          m.role !== 'human' &&
+          (m.content.includes('(Có/Không)') ||
+            m.content.includes('Tiếp tục tra cứu?') ||
+            m.content.includes('Tiếp tục?'));
+
+        return {
+          role: m.role === 'human' ? 'user' : 'assistant',
+          content: m.content,
+          voice_id: m.voice_id,
+          reasoning_steps: m.reasoning_steps,
+          sources: m.sources,
+          pending_confirmation: !!(hasPendingFlag || inferPending),
+        };
+      });
       console.log('[ChatPage] Loaded history messages:', mappedMessages);
       setMessages(mappedMessages);
     } catch (error) {
@@ -300,7 +316,13 @@ function ChatContent() {
   }, []);
 
   const handleVoiceMessage = useCallback(
-    (role: string, content: string, isFinal: boolean, sources?: any[]) => {
+    (
+      role: string,
+      content: string,
+      isFinal: boolean,
+      sources?: any[],
+      pending_confirmation?: boolean
+    ) => {
       if (!content || content.trim() === '') return;
 
       // LỌC: Nếu Agent đang trong trạng thái suy luận, bỏ qua mọi transcription streaming
@@ -323,8 +345,12 @@ function ChatContent() {
         const lastIdx = prev.length - 1;
         const lastMsg = lastIdx >= 0 ? prev[lastIdx] : null;
 
-        // Nếu cùng role, ta cập nhật/cộng dồn thay vì tạo bubble mới
-        if (lastMsg && lastMsg.role === messageRole) {
+        // Nếu cùng role VÀ (tin nhắn cuối đang ở trạng thái streaming HOẶC tin nhắn mới có chứa sources/metadata để cập nhật)
+        if (
+          lastMsg &&
+          lastMsg.role === messageRole &&
+          (lastMsg.isStreaming || sources || pending_confirmation)
+        ) {
           const newMessages = [...prev];
           const lastTrimmed = lastMsg.content.trim();
 
@@ -353,6 +379,10 @@ function ChatContent() {
             isStreaming: !isFinal,
             voice_id: voiceId,
             sources: sources || lastMsg.sources,
+            pending_confirmation:
+              pending_confirmation !== undefined
+                ? pending_confirmation
+                : lastMsg.pending_confirmation,
           };
           return newMessages;
         }
@@ -367,6 +397,7 @@ function ChatContent() {
             voice_id: voiceId,
             reasoning_steps: [],
             sources: sources,
+            pending_confirmation: pending_confirmation || false,
           },
         ];
       });
@@ -811,7 +842,8 @@ function ChatContent() {
                       avatar={
                         msg.role === 'user'
                           ? user?.avatar
-                          : getPersonaAvatar(msg.voice_id)
+                          : getPersonaAvatar(msg.voice_id) ||
+                            selectedPersona?.avatar_url
                       }
                       userName={user?.name || 'Người dùng'}
                       isStreaming={msg.isStreaming}

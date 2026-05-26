@@ -34,7 +34,13 @@ interface ChatInputProps {
   isLoading?: boolean;
   chatId?: string | null;
   onChatCreated?: (chatId: string) => void;
-  onVoiceMessage?: (role: string, content: string, isFinal: boolean) => void;
+  onVoiceMessage?: (
+    role: string,
+    content: string,
+    isFinal: boolean,
+    sources?: any[],
+    pending_confirmation?: boolean
+  ) => void;
   onVoiceStatus?: (message: string, hidden?: boolean) => void;
   onAgentState?: (isReasoning: boolean) => void;
   voiceId?: string;

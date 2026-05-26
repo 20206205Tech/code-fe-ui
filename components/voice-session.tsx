@@ -46,7 +46,8 @@ interface VoiceSessionProps {
     role: string,
     content: string,
     isFinal: boolean,
-    sources?: any[]
+    sources?: any[],
+    pending_confirmation?: boolean
   ) => void;
   onStatus?: (message: string, hidden?: boolean) => void;
   onAgentState?: (isReasoning: boolean) => void;
@@ -74,7 +75,8 @@ export function VoiceSessionUI({
     role: string,
     content: string,
     isFinal: boolean,
-    sources?: any[]
+    sources?: any[],
+    pending_confirmation?: boolean
   ) => void;
   onStatus?: (message: string, hidden?: boolean) => void;
   onAgentState?: (isReasoning: boolean) => void;
@@ -157,7 +159,13 @@ export function VoiceSessionUI({
             text &&
             !isDuplicate(data.role, text, data.isFinal || false, hasSources)
           ) {
-            onMessage?.(data.role, text, data.isFinal || false, data.sources);
+            onMessage?.(
+              data.role,
+              text,
+              data.isFinal || false,
+              data.sources,
+              data.pending_confirmation
+            );
           }
         }
         if (data.type === 'status') {
