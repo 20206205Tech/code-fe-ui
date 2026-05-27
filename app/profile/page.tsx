@@ -6,9 +6,33 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth-context';
 import { authService } from '@/services/auth.service';
-import { ArrowLeft, Upload, KeyRound, Eye, EyeOff } from 'lucide-react';
+import { authMfaService } from '@/services/auth-mfa.service';
+import {
+  ArrowLeft,
+  Upload,
+  KeyRound,
+  Eye,
+  EyeOff,
+  Shield,
+  Smartphone,
+  Trash2,
+  AlertTriangle,
+  Loader2,
+} from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useRef, useState, Suspense } from 'react';
+import { useEffect, useRef, useState, Suspense, useCallback } from 'react';
+import { toast as sonnerToast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 export default function ProfilePage() {
   const { user, updateUser, tokens } = useAuth();
@@ -24,9 +48,49 @@ export default function ProfilePage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
+  // States for MFA
+  const [mfaFactors, setMfaFactors] = useState<any[]>([]);
+  const [isLoadingMfa, setIsLoadingMfa] = useState(false);
+  const [isActionLoading, setIsActionLoading] = useState(false);
+
+  const loadMfaStatus = useCallback(async () => {
+    if (!tokens?.access_token) return;
+    setIsLoadingMfa(true);
+    try {
+      const factors = await authMfaService.listFactors(tokens.access_token);
+      setMfaFactors(factors.active || []);
+    } catch (error) {
+      console.error('Failed to load MFA status:', error);
+    } finally {
+      setIsLoadingMfa(false);
+    }
+  }, [tokens]);
+
   useEffect(() => {
     if (user?.name) setName(user.name);
   }, [user]);
+
+  useEffect(() => {
+    if (tokens?.access_token) {
+      loadMfaStatus();
+    }
+  }, [tokens, loadMfaStatus]);
+
+  const handleUnenrollMFA = async (factorId: string) => {
+    if (!tokens?.access_token) return;
+    setIsActionLoading(true);
+    try {
+      await authMfaService.unenrollFactor(factorId, tokens.access_token);
+      sonnerToast.success('Đã hủy liên kết thiết bị xác thực');
+      await loadMfaStatus();
+    } catch (error: any) {
+      sonnerToast.error(
+        'Không thể hủy liên kết: ' + (error.message || 'Lỗi không xác định')
+      );
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
 
   const handleUpdate = async (data: { name?: string; avatarFile?: File }) => {
     setIsLoading(true);
@@ -272,6 +336,103 @@ export default function ProfilePage() {
                 {isChangingPassword ? 'Đang xử lý...' : 'Cập nhật mật khẩu'}
               </Button>
             </form>
+
+            {/* Quản lý MFA */}
+            <div className="w-full space-y-4 bg-slate-50 dark:bg-slate-900 p-6 rounded-2xl shadow-sm">
+              <div className="flex items-center gap-2 border-b pb-3 border-slate-200 dark:border-slate-800">
+                <Shield
+                  className="text-blue-600 dark:text-blue-400"
+                  size={18}
+                />
+                <h2 className="text-sm font-bold text-slate-850 dark:text-slate-200">
+                  Bảo mật 2 bước (MFA)
+                </h2>
+              </div>
+
+              <div className="space-y-4 relative z-10">
+                {isLoadingMfa ? (
+                  <div className="flex items-center justify-center py-6">
+                    <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                  </div>
+                ) : mfaFactors.length > 0 ? (
+                  <div className="space-y-3">
+                    {mfaFactors.map((factor) => (
+                      <div
+                        key={factor.id}
+                        className="flex items-center justify-between p-4 bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800 transition-all hover:shadow-sm"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 flex items-center justify-center bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg">
+                            <Smartphone size={20} />
+                          </div>
+                          <div>
+                            <p className="font-bold text-sm text-slate-900 dark:text-white">
+                              {factor.friendly_name || 'Thiết bị xác thực'}
+                            </p>
+                            <p className="text-[10px] text-slate-500 flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                              Đang hoạt động (TOTP)
+                            </p>
+                          </div>
+                        </div>
+
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors h-8 w-8"
+                              disabled={isActionLoading}
+                            >
+                              <Trash2 size={16} />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-2xl p-6">
+                            <AlertDialogHeader>
+                              <div className="w-12 h-12 bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl flex items-center justify-center mb-3">
+                                <AlertTriangle size={24} />
+                              </div>
+                              <AlertDialogTitle className="text-xl font-bold text-slate-900 dark:text-white">
+                                Hủy liên kết MFA?
+                              </AlertDialogTitle>
+                              <AlertDialogDescription className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+                                Hành động này sẽ tắt bảo mật 2 bước cho tài
+                                khoản của bạn. Bạn sẽ cần phải đăng ký lại nếu
+                                muốn bật lại tính năng này.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter className="mt-6 gap-2">
+                              <AlertDialogCancel className="h-10 px-4 rounded-lg border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-medium hover:bg-slate-100 dark:hover:bg-slate-800 transition-all text-sm">
+                                Quay lại
+                              </AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleUnenrollMFA(factor.id)}
+                                className="h-10 px-4 rounded-lg bg-red-600 hover:bg-red-500 text-white font-medium shadow-md shadow-red-600/10 transition-all border-none text-sm"
+                              >
+                                {isActionLoading
+                                  ? 'Đang xử lý...'
+                                  : 'Xác nhận Hủy'}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-6 bg-white dark:bg-slate-800/30 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                      Bạn chưa kích hoạt bảo mật 2 bước.
+                    </p>
+                    <Link href="/auth/mfa">
+                      <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold px-6 h-10 shadow-md shadow-blue-600/10 transition-all text-sm">
+                        Kích hoạt ngay
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </main>
       </div>
