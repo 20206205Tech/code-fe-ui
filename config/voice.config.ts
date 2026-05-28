@@ -8,4 +8,5 @@ export const VOICE_SUGGESTIONS = [
   'Có',
   'Không',
   'Tóm tắt nội dung của văn bản 67/2006/QH11',
+  // '1+1',
 ];
