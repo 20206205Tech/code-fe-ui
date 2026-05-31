@@ -2,12 +2,12 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
-  USER_SETTINGS_STORAGE_KEY,
   TOKEN_STORAGE_KEY,
+  USER_SETTINGS_STORAGE_KEY,
 } from '../config/app.config';
-import { settingsService, SettingItem } from '../services/settings.service';
-import { cookieHelper } from './cookie-helper';
 import { SHOW_VOICE_TEXT_SUGGESTIONS } from '../config/voice.config';
+import { SettingItem, settingsService } from '../services/settings.service';
+import { cookieHelper } from './cookie-helper';
 
 const SETTING_KEYS = {
   THEME: 'theme',
