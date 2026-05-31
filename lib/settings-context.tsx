@@ -5,7 +5,6 @@ import {
   TOKEN_STORAGE_KEY,
   USER_SETTINGS_STORAGE_KEY,
 } from '../config/app.config';
-import { SHOW_VOICE_TEXT_SUGGESTIONS } from '../config/voice.config';
 import { SettingItem, settingsService } from '../services/settings.service';
 import { cookieHelper } from './cookie-helper';
 
@@ -22,7 +21,6 @@ interface Settings {
   showExampleQuestions: boolean;
   selectedPersonaId?: string;
   autoExpandReasoning: boolean;
-  showVoiceSuggestions: boolean;
   useReasoning: boolean;
 }
 
@@ -67,8 +65,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             parsed.autoExpandReasoning !== undefined
               ? parsed.autoExpandReasoning
               : prev.autoExpandReasoning,
-          // keep dev-controlled value for showVoiceSuggestions
-          showVoiceSuggestions: SHOW_VOICE_TEXT_SUGGESTIONS,
           useReasoning:
             parsed.useReasoning !== undefined
               ? parsed.useReasoning
@@ -99,8 +95,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         });
 
         const updated = { ...settings, ...newSettings };
-        // enforce dev-controlled value
-        updated.showVoiceSuggestions = SHOW_VOICE_TEXT_SUGGESTIONS;
         setSettings(updated);
         localStorage.setItem(
           USER_SETTINGS_STORAGE_KEY,

@@ -2,7 +2,6 @@
 
 import { Button } from '@/components/ui/button';
 import { SHOW_VOICE_TEXT_SUGGESTIONS, VOICE_SUGGESTIONS } from '@/config/voice.config';
-import { useSettings } from '@/lib/settings-context';
 import { cn } from '@/lib/utils';
 import { conversationService } from '@/services/conversation.service';
 import { AudioLines, Loader2, MessageSquare, Send } from 'lucide-react';
@@ -84,7 +83,6 @@ export function VoiceSessionUI({
   const connectionState = useConnectionState();
   const room = useRoomContext();
   const [devInput, setDevInput] = useState('');
-  const { settings } = useSettings();
 
   const lastProcessedFinalText = useRef<Record<string, string>>({});
   const lastProcessedTime = useRef<Record<string, number>>({});
