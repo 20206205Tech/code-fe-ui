@@ -1,27 +1,58 @@
 import { SUPABASE_AUTH_SERVICE_NAME } from '@/config/api.constants';
 import apiClient from '@/lib/api-client';
 
-// Đường dẫn đã được xác nhận qua brute-force và browser test
+export interface MfaFactor {
+  id: string;
+  friendly_name: string;
+  factor_type: 'totp';
+  status: 'verified' | 'unverified';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MfaEnrollResponse {
+  id: string;
+  type: 'totp';
+  totp: {
+    qr_code: string;
+    secret: string;
+    uri: string;
+  };
+}
+
+export interface MfaChallengeResponse {
+  id: string;
+  expires_at: number;
+}
+
+export interface MfaVerifyResponse {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  refresh_token: string;
+}
+
+export interface MfaListResponse {
+  all: MfaFactor[];
+  active: MfaFactor[];
+}
+
 const MFA_BASE_PATH = `/${SUPABASE_AUTH_SERVICE_NAME}/auth/v1/factors`;
 
 export const authMfaService = {
   enrollMFA: async (
     accessToken: string,
     friendlyName: string = 'My Device'
-  ) => {
+  ): Promise<MfaEnrollResponse> => {
     try {
-      const response = await apiClient.post(
+      const response = await apiClient.post<MfaEnrollResponse>(
         MFA_BASE_PATH,
         {
           factor_type: 'totp',
           issuer: `${process.env.NODE_ENV === 'development' ? 'dev-' : ''}20206205Tech`,
           friendly_name: friendlyName,
         },
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${accessToken}` } }
       );
       return response.data;
     } catch (error: any) {
@@ -33,18 +64,18 @@ export const authMfaService = {
     }
   },
 
-  challengeMFA: async (factorId: string, accessToken: string, retries = 3) => {
+  challengeMFA: async (
+    factorId: string,
+    accessToken: string,
+    retries = 3
+  ): Promise<MfaChallengeResponse> => {
     const url = `${MFA_BASE_PATH}/${factorId}/challenge`;
     for (let i = 0; i < retries; i++) {
       try {
-        const response = await apiClient.post(
+        const response = await apiClient.post<MfaChallengeResponse>(
           url,
           {},
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }
+          { headers: { Authorization: `Bearer ${accessToken}` } }
         );
         return response.data;
       } catch (error: any) {
@@ -53,7 +84,7 @@ export const authMfaService = {
           console.warn(
             `MFA factor not found, retrying challenge... (${i + 1}/${retries})`
           );
-          await new Promise((resolve) => setTimeout(resolve, 1000)); // Đợi 1 giây trước khi thử lại
+          await new Promise((resolve) => setTimeout(resolve, 1000));
           continue;
         }
         console.error(
@@ -63,6 +94,8 @@ export const authMfaService = {
         throw error;
       }
     }
+
+    throw new Error('Không thể tạo challenge MFA sau nhiều lần thử');
   },
 
   verifyMFA: async (
@@ -70,20 +103,12 @@ export const authMfaService = {
     challengeId: string,
     code: string,
     accessToken: string
-  ) => {
+  ): Promise<MfaVerifyResponse> => {
     try {
-      const url = `${MFA_BASE_PATH}/${factorId}/verify`;
-      const response = await apiClient.post(
-        url,
-        {
-          challenge_id: challengeId,
-          code,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
+      const response = await apiClient.post<MfaVerifyResponse>(
+        `${MFA_BASE_PATH}/${factorId}/verify`,
+        { challenge_id: challengeId, code },
+        { headers: { Authorization: `Bearer ${accessToken}` } }
       );
       return response.data;
     } catch (error: any) {
@@ -95,18 +120,13 @@ export const authMfaService = {
     }
   },
 
-  listFactors: async (accessToken: string) => {
-    const url = `/${SUPABASE_AUTH_SERVICE_NAME}/auth/v1/user`;
-
+  listFactors: async (accessToken: string): Promise<MfaListResponse> => {
     try {
-      const response = await apiClient.get(url, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-
+      const response = await apiClient.get(
+        `/${SUPABASE_AUTH_SERVICE_NAME}/auth/v1/user`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
       const factors = response.data?.factors || [];
-
       return {
         all: factors,
         active: factors.filter((f: any) => f.status === 'verified'),
@@ -120,12 +140,13 @@ export const authMfaService = {
     }
   },
 
-  unenrollFactor: async (factorId: string, accessToken: string) => {
+  unenrollFactor: async (
+    factorId: string,
+    accessToken: string
+  ): Promise<boolean> => {
     try {
       await apiClient.delete(`${MFA_BASE_PATH}/${factorId}`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
       return true;
     } catch (error: any) {
@@ -141,16 +162,12 @@ export const authMfaService = {
     factorId: string,
     friendlyName: string,
     accessToken: string
-  ) => {
+  ): Promise<MfaEnrollResponse> => {
     try {
-      const response = await apiClient.put(
+      const response = await apiClient.put<MfaEnrollResponse>(
         `${MFA_BASE_PATH}/${factorId}`,
         { friendly_name: friendlyName },
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${accessToken}` } }
       );
       return response.data;
     } catch (error: any) {
