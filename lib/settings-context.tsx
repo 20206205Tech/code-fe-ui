@@ -7,13 +7,13 @@ import {
 } from '../config/app.config';
 import { settingsService, SettingItem } from '../services/settings.service';
 import { cookieHelper } from './cookie-helper';
+import { SHOW_VOICE_TEXT_SUGGESTIONS } from '../config/voice.config';
 
 const SETTING_KEYS = {
   THEME: 'theme',
   SHOW_EXAMPLE_QUESTIONS: 'show_example_questions',
   SELECTED_PERSONA_ID: 'selected_persona_id',
   AUTO_EXPAND_REASONING: 'auto_expand_reasoning',
-  SHOW_VOICE_TEXT_SUGGESTIONS: 'show_voice_text_suggestions',
   USE_REASONING: 'use_reasoning',
 } as const;
 
@@ -31,7 +31,7 @@ const DEFAULT_SETTINGS: Settings = {
   showExampleQuestions: true,
   selectedPersonaId: undefined,
   autoExpandReasoning: true,
-  showVoiceSuggestions: false,
+  showVoiceSuggestions: SHOW_VOICE_TEXT_SUGGESTIONS,
   useReasoning: false,
 };
 
@@ -49,7 +49,7 @@ const SettingsContext = createContext<SettingsContextType | undefined>(
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount (do not treat dev-only flags as user settings)
   useEffect(() => {
     const saved = localStorage.getItem(USER_SETTINGS_STORAGE_KEY);
     if (saved) {
@@ -67,10 +67,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             parsed.autoExpandReasoning !== undefined
               ? parsed.autoExpandReasoning
               : prev.autoExpandReasoning,
-          showVoiceSuggestions:
-            parsed.showVoiceSuggestions !== undefined
-              ? parsed.showVoiceSuggestions
-              : prev.showVoiceSuggestions,
+          // keep dev-controlled value for showVoiceSuggestions
+          showVoiceSuggestions: SHOW_VOICE_TEXT_SUGGESTIONS,
           useReasoning:
             parsed.useReasoning !== undefined
               ? parsed.useReasoning
@@ -96,13 +94,13 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             newSettings.selectedPersonaId = item.value;
           if (item.key === SETTING_KEYS.AUTO_EXPAND_REASONING)
             newSettings.autoExpandReasoning = item.value === 'true';
-          if (item.key === SETTING_KEYS.SHOW_VOICE_TEXT_SUGGESTIONS)
-            newSettings.showVoiceSuggestions = item.value === 'true';
           if (item.key === SETTING_KEYS.USE_REASONING)
             newSettings.useReasoning = item.value === 'true';
         });
 
         const updated = { ...settings, ...newSettings };
+        // enforce dev-controlled value
+        updated.showVoiceSuggestions = SHOW_VOICE_TEXT_SUGGESTIONS;
         setSettings(updated);
         localStorage.setItem(
           USER_SETTINGS_STORAGE_KEY,
@@ -147,12 +145,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         apiPayload.push({
           key: SETTING_KEYS.AUTO_EXPAND_REASONING,
           value: String(newSettings.autoExpandReasoning),
-        });
-      }
-      if (newSettings.showVoiceSuggestions !== undefined) {
-        apiPayload.push({
-          key: SETTING_KEYS.SHOW_VOICE_TEXT_SUGGESTIONS,
-          value: String(newSettings.showVoiceSuggestions),
         });
       }
       if (newSettings.useReasoning !== undefined) {
