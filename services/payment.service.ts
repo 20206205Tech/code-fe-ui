@@ -35,17 +35,7 @@ export interface Transaction {
 }
 
 export interface Subscription {
-  subscription: {
-    id: string;
-    user_id: string;
-    plan_id: string;
-    status: 'active' | 'expired' | 'cancelled';
-    start_date: string;
-    end_date: string;
-    created_at: string;
-  };
   has_active_subscription: boolean;
-  days_remaining: number;
 }
 
 export const paymentService = {
@@ -105,19 +95,7 @@ export const paymentService = {
 
   getMySubscription: async (): Promise<Subscription | null> => {
     if (USE_MOCK_API && process.env.NODE_ENV === 'development') {
-      return {
-        subscription: {
-          id: 'dev-sub-id',
-          user_id: 'dev-user-id',
-          plan_id: 'vip-plan-id',
-          status: 'active',
-          start_date: new Date().toISOString(),
-          end_date: '2099-12-31T23:59:59Z',
-          created_at: new Date().toISOString(),
-        },
-        has_active_subscription: true,
-        days_remaining: 9999,
-      };
+      return { has_active_subscription: true };
     }
 
     try {

@@ -1,9 +1,9 @@
-import { apiHelper } from '@/lib/api-helper';
-import { TOKEN_STORAGE_KEY } from '@/config/app.config';
 import {
   API_GATEWAY_PREFIX,
   CODE_CONVERSATION_SERVICE_NAME,
 } from '@/config/api.constants';
+import { TOKEN_STORAGE_KEY } from '@/config/app.config';
+import { apiHelper } from '@/lib/api-helper';
 import { cookieHelper } from '@/lib/cookie-helper';
 
 export interface StreamUpdate {
@@ -69,7 +69,19 @@ export const conversationService = {
       }
     );
 
-    if (!response.ok) throw new Error('Failed to stream chat');
+    if (!response.ok) {
+      // Đọc body lỗi để lấy message cụ thể từ server
+      let errorMessage = 'Đã xảy ra lỗi khi kết nối với máy chủ.';
+      try {
+        const errorBody = await response.json();
+        errorMessage = errorBody?.message || errorBody?.error || errorMessage;
+      } catch {
+        // body không phải JSON, dùng message mặc định
+      }
+      const error = new Error(errorMessage);
+      (error as any).status = response.status;
+      throw error;
+    }
 
     const reader = response.body?.getReader();
     const decoder = new TextDecoder();
@@ -77,24 +89,65 @@ export const conversationService = {
 
     if (!reader) return;
 
-    const processLine = (line: string) => {
-      if (line.startsWith('data: ')) {
-        const currentData = line.substring(6);
-        try {
-          const parsed = JSON.parse(currentData);
-          const update = parsed.data || parsed;
+    const processLine = (line: string): Error | 'BREAK' | null => {
+      if (!line.startsWith('data: ')) return null;
 
-          // Bỏ qua tin nhắn heartbeat
-          if (update.type === 'heartbeat') {
-            console.log('💓 Heartbeat received');
-            return;
-          }
+      const currentData = line.substring(6).trim();
+      if (!currentData) return null;
 
-          onUpdate(update);
-        } catch (e) {
-          console.error('Error parsing stream chunk:', e);
+      // Thử parse JSON trước
+      try {
+        const parsed = JSON.parse(currentData);
+        const update = parsed.data || parsed;
+
+        if (update.type === 'heartbeat') {
+          console.log('💓 Heartbeat received');
+          return null;
         }
+
+        // NestJS SSE có thể serialize lỗi với statusCode hoặc status
+        const statusCode = update.statusCode || update.status;
+        if (statusCode && statusCode >= 400) {
+          const err = new Error(
+            Array.isArray(update.message)
+              ? update.message.join(', ')
+              : update.message || 'Đã xảy ra lỗi từ máy chủ.'
+          );
+          (err as any).status = statusCode;
+          return err;
+        }
+
+        onUpdate(update);
+
+        if (update.type === 'metadata' && update.full_answer) {
+          console.log('🏁 Stream completed via metadata.full_answer');
+          return 'BREAK';
+        }
+      } catch {
+        // Một số backend gửi marker kết thúc stream dạng text
+        if (currentData === '[DONE]') return 'BREAK';
+
+        // Chỉ coi là lỗi khi text có tín hiệu lỗi rõ ràng
+        const looksLikeError =
+          /exception|error|forbidden|unauthorized|denied|invalid|failed/i.test(
+            currentData
+          );
+        if (looksLikeError) {
+          console.warn('[SSE] Non-JSON error data received:', currentData);
+          const err = new Error(currentData);
+          (err as any).status = 500;
+          return err;
+        }
+
+        // Fallback: xử lý text thuần như content chunk thay vì ném lỗi giả
+        onUpdate({
+          type: 'content_chunk',
+          content: currentData,
+          message: currentData,
+        });
       }
+
+      return null;
     };
 
     while (true) {
@@ -105,10 +158,24 @@ export const conversationService = {
       const lines = buffer.split('\n');
       buffer = lines.pop() || '';
 
-      for (const line of lines) processLine(line);
+      for (const line of lines) {
+        const result = processLine(line);
+        if (result instanceof Error) throw result;
+        if (result === 'BREAK') {
+          await reader.cancel();
+          return;
+        }
+      }
     }
 
-    if (buffer) processLine(buffer);
+    if (buffer) {
+      const result = processLine(buffer);
+      if (result instanceof Error) throw result;
+      if (result === 'BREAK') {
+        await reader.cancel();
+        return;
+      }
+    }
   },
 
   deleteChat: (chatId: string) => {

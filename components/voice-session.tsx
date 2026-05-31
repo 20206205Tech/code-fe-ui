@@ -561,9 +561,11 @@ export const VoiceSession = forwardRef<VoiceSessionHandle, VoiceSessionProps>(
         } else {
           toast.error('Không thể lấy token kết nối');
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to get voice token:', error);
-        toast.error('Lỗi kết nối phiên thoại');
+        const message =
+          error?.message || 'Lỗi kết nối phiên thoại. Vui lòng thử lại.';
+        toast.error(message);
       } finally {
         setIsGettingToken(false);
       }

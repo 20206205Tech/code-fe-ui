@@ -20,26 +20,13 @@ import { authMfaService } from '../services/auth-mfa.service';
 import { useSettings } from './settings-context';
 import { cookieHelper } from './cookie-helper';
 import { paymentService, Subscription } from '../services/payment.service';
+import type { AuthToken, User } from '../services/auth.service';
 
 import {
   decodeJwtPayload,
   getUserRoleFromToken,
   getAALFromToken,
 } from './token-helper';
-
-export interface AuthToken {
-  access_token: string;
-  refresh_token: string;
-  expires_in: number;
-}
-
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  avatar?: string;
-  role?: string;
-}
 
 interface AuthContextType {
   user: User | null;
@@ -91,8 +78,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Always fetch latest subscription if authenticated
-    if (storedToken?.access_token) {
+    // Chỉ sync subscription nếu đã đạt aal2 (đã qua MFA)
+    if (
+      storedToken?.access_token &&
+      getAALFromToken(storedToken.access_token) === 'aal2'
+    ) {
       syncSubscription();
     }
 

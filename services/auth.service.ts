@@ -5,6 +5,26 @@ import {
 import { apiHelper } from '@/lib/api-helper';
 import axios from 'axios';
 
+export interface AuthToken {
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  avatar?: string;
+  role?: string;
+}
+
+export interface UserProfile {
+  id: string;
+  full_name?: string;
+  avatar_url?: string;
+}
+
 export const authService = {
   loginWithGoogle: () => {
     const baseUrl =
@@ -34,7 +54,6 @@ export const authService = {
       if (errorData?.error_code === 'invalid_credentials') {
         throw new Error('Sai thông tin đăng nhập hoặc chưa xác nhận mail');
       }
-
       console.error('Email login failed:', errorData || error.message);
       throw new Error(
         errorData?.error_description || errorData?.msg || 'Đăng nhập thất bại'
@@ -119,8 +138,11 @@ export const authService = {
     }
   },
 
-  getProfile: async (userId: string, accessToken: string) => {
-    const data = await apiHelper.get<any[]>(
+  getProfile: async (
+    userId: string,
+    accessToken: string
+  ): Promise<UserProfile | null> => {
+    const data = await apiHelper.get<UserProfile[]>(
       `/${SUPABASE_AUTH_SERVICE_NAME}/rest/v1/profiles?id=eq.${userId}`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
@@ -131,8 +153,8 @@ export const authService = {
     userId: string,
     accessToken: string,
     payload: { full_name?: string; avatar_url?: string }
-  ) => {
-    const data = await apiHelper.patch<any[]>(
+  ): Promise<UserProfile> => {
+    const data = await apiHelper.patch<UserProfile[]>(
       `/${SUPABASE_AUTH_SERVICE_NAME}/rest/v1/profiles?id=eq.${userId}`,
       payload,
       {
@@ -145,7 +167,11 @@ export const authService = {
     return data[0];
   },
 
-  uploadAvatar: async (userId: string, accessToken: string, file: File) => {
+  uploadAvatar: async (
+    userId: string,
+    accessToken: string,
+    file: File
+  ): Promise<string> => {
     const fileExt = file.name.split('.').pop();
     const fileName = `${userId}_${Math.random().toString(36).substring(2)}.${fileExt}`;
     const storagePath = `/${SUPABASE_AUTH_SERVICE_NAME}/storage/v1/object/avatars/${fileName}`;
@@ -160,20 +186,16 @@ export const authService = {
     return `${API_GATEWAY_PREFIX}/${SUPABASE_AUTH_SERVICE_NAME}/storage/v1/object/public/avatars/${fileName}`;
   },
 
-  logout: async (accessToken: string) => {
+  logout: async (accessToken: string): Promise<boolean> => {
     try {
       await axios.post(
         `${API_GATEWAY_PREFIX}/${SUPABASE_AUTH_SERVICE_NAME}/auth/v1/logout`,
         {},
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${accessToken}` } }
       );
     } catch (error: any) {
       console.error('Logout failed:', error.response?.data || error.message);
-      // We still return true to allow local logout even if server call fails
+      // Still return true to allow local logout even if server call fails
     }
     return true;
   },

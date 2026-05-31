@@ -47,7 +47,9 @@ export async function fetchBaseResponse<T>(
   } catch (error: any) {
     const errorMessage =
       error.response?.data?.message || error.message || 'Lỗi không xác định';
-    throw new Error(`API call failed: ${errorMessage}`);
+    const apiError = new Error(errorMessage);
+    (apiError as any).status = error.response?.status;
+    throw apiError;
   }
 }
 

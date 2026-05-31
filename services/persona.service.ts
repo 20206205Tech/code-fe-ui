@@ -85,11 +85,7 @@ export const personaService = {
     return apiHelper.post<string>(
       `/${CODE_PERSONA_SERVICE_NAME}/persona/upload-avatar`,
       formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      }
+      { headers: { 'Content-Type': 'multipart/form-data' } }
     );
   },
 
@@ -99,11 +95,7 @@ export const personaService = {
     return apiHelper.post<string>(
       `/${CODE_PERSONA_SERVICE_NAME}/persona/upload-audio`,
       formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      }
+      { headers: { 'Content-Type': 'multipart/form-data' } }
     );
   },
 };

@@ -1,47 +1,46 @@
 'use client';
 
 import { BookmarkModal } from '@/components/bookmark-modal';
-import { cn } from '@/lib/utils';
+import { ChatHeader } from '@/components/chat-header';
 import { ChatInput } from '@/components/chat-input';
 import { ChatMessage } from '@/components/chat-message';
 import { ShareModal } from '@/components/share-modal';
 import { Sidebar } from '@/components/sidebar';
 import { Button } from '@/components/ui/button';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { ChatHeader } from '@/components/chat-header';
-import { useAuth } from '@/lib/auth-context';
-import { useSettings } from '@/lib/settings-context';
-import { conversationService } from '@/services/conversation.service';
-import { chatbotService } from '@/services/chatbot.service';
-import {
-  Bookmark,
-  Loader2,
-  MessageSquare,
-  Share2,
-  Zap,
-  Brain,
-  ChevronLeft,
-  ChevronRight,
-  User as UserIcon,
-  Sparkles,
-  ChevronDown,
-  X,
-} from 'lucide-react';
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { personaService, Persona } from '@/services/persona.service';
-import { toast } from 'sonner';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { useAuth } from '@/lib/auth-context';
+import { useSettings } from '@/lib/settings-context';
+import { cn } from '@/lib/utils';
+import { chatbotService } from '@/services/chatbot.service';
+import { conversationService } from '@/services/conversation.service';
+import { Persona, personaService } from '@/services/persona.service';
+import {
+  Bookmark,
+  Brain,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  MessageSquare,
+  Share2,
+  User as UserIcon,
+  X,
+  Zap,
+} from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useRef, useState, useCallback } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -86,11 +85,12 @@ function ChatContent() {
   }, [isAuthenticated, isMfaRequired, isAuthLoading, router]);
 
   // Sync subscription status when landing on chat page to ensure VIP status is up-to-date
+  // Chỉ gọi khi đã xác thực đầy đủ (aal2) — isAuthenticated đã đảm bảo điều này
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && !isMfaRequired) {
       syncSubscription();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isMfaRequired]);
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
@@ -607,16 +607,43 @@ function ChatContent() {
         }
         return newMessages;
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending message:', error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: 'Đã xảy ra lỗi khi kết nối với máy chủ. Vui lòng thử lại.',
-          isStreaming: false,
-        },
-      ]);
+
+      const status = error?.status;
+      const message =
+        error?.message || 'Đã xảy ra lỗi khi kết nối với máy chủ.';
+
+      // Dọn placeholder streaming trước
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.role === 'assistant' && last.isStreaming && !last.content) {
+          return prev.slice(0, -1);
+        }
+        return prev;
+      });
+
+      // Toast cho lỗi business rule (403, 401, hoặc message từ server không phải JSON)
+      if (status === 403 || status === 401) {
+        toast.error(message);
+      } else if (
+        message.includes('VIP') ||
+        message.includes('nâng cấp') ||
+        message.includes('Tính năng')
+      ) {
+        // Text lỗi thô từ NestJS SSE (ForbiddenException không serialize thành JSON)
+        toast.error(message);
+      } else {
+        // Lỗi hệ thống → hiển thị trong bubble chat
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant' as const,
+            content: `⚠️ ${message}`,
+            isStreaming: false,
+          },
+        ]);
+      }
     } finally {
       setIsMessageSending(false);
       setCurrentStatus(null);
