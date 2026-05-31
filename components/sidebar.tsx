@@ -14,9 +14,20 @@ import {
   Plus,
   Settings,
   Sparkles,
+  Trash2,
   User,
   Workflow,
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,6 +54,8 @@ export function Sidebar() {
   const [isLoading, setIsLoading] = useState(false);
   const [isBookmarksLoading, setIsBookmarksLoading] = useState(false);
   const [isStartingChat, setIsStartingChat] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<ChatSession | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -88,8 +101,7 @@ export function Sidebar() {
     await logout();
   };
 
-  const handleNewChat = async () => {
-    setIsStartingChat(true);
+  const handleNewChat = async () => {    setIsStartingChat(true);
     try {
       const session = await conversationService.startChat();
       setIsOpen(false);
@@ -99,6 +111,25 @@ export function Sidebar() {
       toast.error('Không thể tạo cuộc trò chuyện mới.');
     } finally {
       setIsStartingChat(false);
+    }
+  };
+
+  const handleDeleteChat = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      await conversationService.deleteChat(deleteTarget.id);
+      setSessions((prev) => prev.filter((s) => s.id !== deleteTarget.id));
+      if (activeChatId === deleteTarget.id) {
+        router.push('/chat');
+      }
+      toast.success('Đã xóa cuộc trò chuyện');
+    } catch (error) {
+      console.error('Failed to delete chat:', error);
+      toast.error('Không thể xóa cuộc trò chuyện');
+    } finally {
+      setIsDeleting(false);
+      setDeleteTarget(null);
     }
   };
 
@@ -167,25 +198,43 @@ export function Sidebar() {
                 </div>
               ) : sessions.length > 0 ? (
                 sessions.slice(0, 5).map((session) => (
-                  <button
+                  <div
                     key={session.id}
-                    onClick={() => {
-                      setIsOpen(false);
-                      router.push(`/chat?id=${session.id}`);
-                    }}
-                    className={`w-full text-left p-3 rounded-lg text-sm transition-all ${
+                    className={`group relative flex items-center rounded-lg transition-all ${
                       activeChatId === session.id
-                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium border border-blue-100 dark:border-blue-800'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                        ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800'
+                        : 'hover:bg-slate-50 dark:hover:bg-slate-800'
                     }`}
                   >
-                    <p className="truncate">
-                      {session.title || 'Cuộc trò chuyện mới'}
-                    </p>
-                    <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
-                      {new Date(session.updated_at).toLocaleDateString('vi-VN')}
-                    </p>
-                  </button>
+                    <button
+                      onClick={() => {
+                        setIsOpen(false);
+                        router.push(`/chat?id=${session.id}`);
+                      }}
+                      className={`flex-1 text-left p-3 text-sm ${
+                        activeChatId === session.id
+                          ? 'text-blue-600 dark:text-blue-400 font-medium'
+                          : 'text-slate-600 dark:text-slate-400'
+                      }`}
+                    >
+                      <p className="truncate pr-6">
+                        {session.title || 'Cuộc trò chuyện mới'}
+                      </p>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
+                        {new Date(session.updated_at).toLocaleDateString('vi-VN')}
+                      </p>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteTarget(session);
+                      }}
+                      className="absolute right-2 opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-all"
+                      title="Xóa cuộc trò chuyện"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 ))
               ) : (
                 <div className="text-sm text-slate-500 dark:text-slate-400 py-4 px-1">
@@ -273,6 +322,35 @@ export function Sidebar() {
           )}
         </div>
       </aside>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xóa cuộc trò chuyện?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cuộc trò chuyện &quot;{deleteTarget?.title || 'Cuộc trò chuyện mới'}&quot; sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteChat}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Đang xóa...
+                </>
+              ) : (
+                'Xóa'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
