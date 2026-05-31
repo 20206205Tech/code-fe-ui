@@ -29,7 +29,6 @@ const DEFAULT_SETTINGS: Settings = {
   showExampleQuestions: true,
   selectedPersonaId: undefined,
   autoExpandReasoning: true,
-  showVoiceSuggestions: SHOW_VOICE_TEXT_SUGGESTIONS,
   useReasoning: false,
 };
 
