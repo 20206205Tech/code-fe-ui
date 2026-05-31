@@ -15,6 +15,15 @@ export interface StreamUpdate {
   pending_confirmation?: boolean;
 }
 
+export interface SharedChat {
+  shareId: string;
+  chatId: string;
+  shareUrl: string;
+  status: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
 const CONVERSATION_BASE = `/${CODE_CONVERSATION_SERVICE_NAME}/chats`;
 const BOOKMARK_BASE = `/${CODE_CONVERSATION_SERVICE_NAME}/bookmarks`;
 const SHARE_BASE = `/${CODE_CONVERSATION_SERVICE_NAME}/shared-chats`;
@@ -238,7 +247,7 @@ export const conversationService = {
     }>(`${SHARE_BASE}`, { chat_id: chatId }),
 
   getMySharedChats: (skip = 0, limit = 100) => {
-    return apiHelper.get<any>(`${SHARE_BASE}/me`, {
+    return apiHelper.get<SharedChat[]>(`${SHARE_BASE}/me`, {
       params: { skip, limit },
     });
   },
