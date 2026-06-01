@@ -168,7 +168,7 @@ export default function SharesManager() {
                 </div>
 
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Được tạo lúc {formatDate(share.createdAt)}
+                  Được tạo  {formatDate(share.createdAt)}
                 </p>
               </div>
 
