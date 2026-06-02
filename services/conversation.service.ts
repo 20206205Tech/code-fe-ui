@@ -238,13 +238,16 @@ export const conversationService = {
   },
 
   // Share methods
-  generateShareLink: (chatId: string) =>
+  generateShareLink: (chatId: string, lastMessageId?: string | null) =>
     apiHelper.post<{
       shareId: string;
       chatId: string;
       status: string;
       shareUrl: string;
-    }>(`${SHARE_BASE}`, { chat_id: chatId }),
+    }>(`${SHARE_BASE}`, {
+      chat_id: chatId,
+      last_message_id: lastMessageId || undefined,
+    }),
 
   getMySharedChats: (skip = 0, limit = 100) => {
     return apiHelper.get<SharedChat[]>(`${SHARE_BASE}`, {

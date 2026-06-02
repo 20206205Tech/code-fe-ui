@@ -11,6 +11,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { conversationService } from '@/services/conversation.service';
+import { chatbotService } from '@/services/chatbot.service';
 import { AlertCircle, Check, Copy, Loader2, Share2 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -54,7 +55,18 @@ export function ShareModal({ isOpen, onClose, chatId }: ShareModalProps) {
     setErrorMessage('');
 
     try {
-      const data = await conversationService.generateShareLink(chatId);
+      // 1. Get latest messages from Python chatbot service
+      const messages = await chatbotService.getChatMessages(chatId);
+      const calculatedLastMessageId =
+        messages && messages.length > 0
+          ? messages[messages.length - 1].id
+          : null;
+
+      // 2. Generate share link passing calculatedLastMessageId
+      const data = await conversationService.generateShareLink(
+        chatId,
+        calculatedLastMessageId
+      );
       const fullUrl = `${window.location.origin}${data.shareUrl}`;
 
       setShareUrl(fullUrl);
