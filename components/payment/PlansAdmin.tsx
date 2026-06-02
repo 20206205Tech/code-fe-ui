@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { Plus, Trash2, Edit2, Loader2, CreditCard } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Plus, Trash2, Loader2 } from 'lucide-react';
 import {
   Plan,
   CreatePlanRequestDto,
@@ -29,7 +29,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { DEFAULT_FEATURES } from '@/constants/plan.constants';
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('vi-VN', {
@@ -38,19 +40,22 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
+const DEFAULT_FORM: CreatePlanRequestDto = {
+  name: 'VIP 1',
+  durationMonths: 1,
+  price: 10000,
+  isActive: true,
+  features: [],
+};
+
 export default function PlansAdmin() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isOpeningDialog, setIsOpeningDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Form state
-  const [formData, setFormData] = useState<CreatePlanRequestDto>({
-    name: 'VIP 1',
-    durationMonths: 1,
-    price: 10000,
-    isActive: true,
-  });
+  const [featuresInput, setFeaturesInput] = useState('');
+  const [formData, setFormData] = useState<CreatePlanRequestDto>(DEFAULT_FORM);
 
   useEffect(() => {
     fetchPlans();
@@ -59,7 +64,7 @@ export default function PlansAdmin() {
   const fetchPlans = async () => {
     try {
       setIsLoading(true);
-      const data = await paymentService.getPlans(0, 50); // Fetch up to 50 plans for admin
+      const data = await paymentService.getPlans(0, 50);
       setPlans(data);
     } catch (error) {
       console.error('Failed to fetch plans:', error);
@@ -69,19 +74,24 @@ export default function PlansAdmin() {
     }
   };
 
-  const handleCreatePlan = async (e: React.FormEvent) => {
+  const handleCreatePlan = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
       setIsSubmitting(true);
-      await paymentService.createPlan(formData);
+      const features = featuresInput
+        .split('\n')
+        .map((f) => f.trim())
+        .filter(Boolean);
+
+      await paymentService.createPlan({
+        ...formData,
+        features: features.length ? features : DEFAULT_FEATURES,
+      });
+
       toast.success('Đã tạo gói cước mới');
       setIsOpeningDialog(false);
-      setFormData({
-        name: 'VIP 1',
-        durationMonths: 1,
-        price: 10000,
-        isActive: true,
-      });
+      setFormData(DEFAULT_FORM);
+      setFeaturesInput('');
       fetchPlans();
     } catch (error) {
       console.error('Create failed:', error);
@@ -93,7 +103,6 @@ export default function PlansAdmin() {
 
   const handleDeletePlan = async (id: string) => {
     if (!confirm('Bạn có chắc chắn muốn xóa gói cước này?')) return;
-
     try {
       await paymentService.deletePlan(id);
       toast.success('Đã xóa gói cước');
@@ -120,13 +129,22 @@ export default function PlansAdmin() {
           <p className="text-muted-foreground">Quản lý các gói đăng ký</p>
         </div>
 
-        <Dialog open={isOpeningDialog} onOpenChange={setIsOpeningDialog}>
+        <Dialog
+          open={isOpeningDialog}
+          onOpenChange={(open) => {
+            setIsOpeningDialog(open);
+            if (!open) {
+              setFormData(DEFAULT_FORM);
+              setFeaturesInput('');
+            }
+          }}
+        >
           <DialogTrigger asChild>
             <Button>
               <Plus className="w-4 h-4 mr-2" /> Thêm gói mới
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-lg">
             <form onSubmit={handleCreatePlan}>
               <DialogHeader>
                 <DialogTitle>Tạo gói cước mới</DialogTitle>
@@ -134,7 +152,9 @@ export default function PlansAdmin() {
                   Nhập thông tin chi tiết cho gói đăng ký mới.
                 </DialogDescription>
               </DialogHeader>
+
               <div className="grid gap-4 py-4">
+                {/* Tên gói */}
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="name" className="text-right">
                     Tên gói
@@ -150,6 +170,8 @@ export default function PlansAdmin() {
                     required
                   />
                 </div>
+
+                {/* Số tháng */}
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="months" className="text-right">
                     Số tháng
@@ -169,6 +191,8 @@ export default function PlansAdmin() {
                     required
                   />
                 </div>
+
+                {/* Giá */}
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="price" className="text-right">
                     Giá (VND)
@@ -188,6 +212,8 @@ export default function PlansAdmin() {
                     required
                   />
                 </div>
+
+                {/* Kích hoạt */}
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="active" className="text-right">
                     Kích hoạt
@@ -200,7 +226,27 @@ export default function PlansAdmin() {
                     }
                   />
                 </div>
+
+                {/* Tính năng */}
+                <div className="grid grid-cols-4 items-start gap-4">
+                  <Label htmlFor="features" className="text-right pt-2">
+                    Tính năng
+                  </Label>
+                  <div className="col-span-3">
+                    <Textarea
+                      id="features"
+                      value={featuresInput}
+                      onChange={(e) => setFeaturesInput(e.target.value)}
+                      placeholder={`Mỗi dòng 1 tính năng\nVD: Xử lý nhanh & ưu tiên\nKhông giới hạn câu hỏi`}
+                      rows={4}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Để trống sẽ dùng danh sách mặc định: {DEFAULT_FEATURES.join(', ')}
+                    </p>
+                  </div>
+                </div>
               </div>
+
               <DialogFooter>
                 <Button type="submit" disabled={isSubmitting}>
                   {isSubmitting && (
@@ -221,6 +267,7 @@ export default function PlansAdmin() {
               <TableHead>Tên gói</TableHead>
               <TableHead>Thời hạn</TableHead>
               <TableHead>Giá</TableHead>
+              <TableHead>Tính năng</TableHead>
               <TableHead>Trạng thái</TableHead>
               <TableHead className="text-right">Thao tác</TableHead>
             </TableRow>
@@ -229,7 +276,7 @@ export default function PlansAdmin() {
             {plans.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={6}
                   className="text-center py-8 text-muted-foreground"
                 >
                   Chưa có gói cước nào được tạo.
@@ -241,19 +288,23 @@ export default function PlansAdmin() {
                   <TableCell className="font-medium">{plan.name}</TableCell>
                   <TableCell>{plan.durationMonths} tháng</TableCell>
                   <TableCell>{formatCurrency(plan.price)}</TableCell>
+                  <TableCell className="max-w-[200px]">
+                    {plan.features?.length ? (
+                      <ul className="text-xs text-muted-foreground space-y-0.5">
+                        {plan.features.map((f, i) => (
+                          <li key={i}>• {f}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">Mặc định</span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <Badge variant={plan.isActive ? 'default' : 'secondary'}>
                       {plan.isActive ? 'Đang bật' : 'Đã tắt'}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right space-x-2">
-                    {/* <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => toast.info('Tính năng Edit sẽ sớm ra mắt')}
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </Button> */}
+                  <TableCell className="text-right">
                     <Button
                       variant="ghost"
                       size="icon"

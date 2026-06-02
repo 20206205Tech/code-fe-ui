@@ -2,20 +2,18 @@ import { CODE_PAYMENT_SERVICE_NAME } from '@/config/api.constants';
 import { USE_MOCK_API } from '@/config/mock.config';
 import { apiHelper } from '@/lib/api-helper';
 
-export interface Plan {
-  id: string;
-  name: string;
-  durationMonths: number;
-  price: number;
-  isActive: boolean;
-  createdAt?: string;
-}
-
 export interface CreatePlanRequestDto {
   name: string;
   durationMonths: number;
   price: number;
   isActive: boolean;
+  features?: string[];
+}
+
+// Plan = CreatePlanRequestDto + các field server tự sinh
+export interface Plan extends CreatePlanRequestDto {
+  id: string;
+  createdAt?: string;
 }
 
 export interface PurchaseSubscriptionRequestDto {
@@ -43,11 +41,30 @@ export const paymentService = {
     if (USE_MOCK_API && process.env.NODE_ENV === 'development') {
       return Promise.resolve([
         {
-          id: 'vip-plan-id',
-          name: 'VIP Developer Plan',
-          durationMonths: 12,
-          price: 0,
+          id: 'plan-basic-id',
+          name: 'VIP 1 Tháng',
+          durationMonths: 1,
+          price: 99000,
           isActive: true,
+          features: ['Sử dụng suy luận', 'Sử dụng voice', 'Xử lý tài liệu riêng'],
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'plan-pro-id',
+          name: 'VIP 6 Tháng',
+          durationMonths: 6,
+          price: 499000,
+          isActive: true,
+          features: ['Sử dụng suy luận', 'Sử dụng voice', 'Xử lý tài liệu riêng'],
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'plan-vip-id',
+          name: 'VIP 12 Tháng',
+          durationMonths: 12,
+          price: 899000,
+          isActive: true,
+          features: ['Sử dụng suy luận', 'Sử dụng voice', 'Xử lý tài liệu riêng'],
           createdAt: new Date().toISOString(),
         },
       ]);
@@ -55,20 +72,6 @@ export const paymentService = {
     return apiHelper.get<Plan[]>(`/${CODE_PAYMENT_SERVICE_NAME}/plans`, {
       params: { skip, limit },
     });
-  },
-
-  getPlanDetail: (planId: string): Promise<Plan> => {
-    if (USE_MOCK_API && process.env.NODE_ENV === 'development') {
-      return Promise.resolve({
-        id: planId,
-        name: 'VIP Developer Plan',
-        durationMonths: 12,
-        price: 0,
-        isActive: true,
-        createdAt: new Date().toISOString(),
-      });
-    }
-    return apiHelper.get<Plan>(`/${CODE_PAYMENT_SERVICE_NAME}/plans/${planId}`);
   },
 
   createPlan: (data: CreatePlanRequestDto): Promise<Plan> => {

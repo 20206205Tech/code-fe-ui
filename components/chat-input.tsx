@@ -407,7 +407,6 @@ export function ChatInput({
                 <CheckCircle2 size={12} className="text-green-500" />
               ) : doc.status === 'FAILED' ? (
                 <div className="flex items-center gap-1">
-                  <X size={12} className="text-red-500" />
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>

@@ -2,10 +2,10 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
-  USER_SETTINGS_STORAGE_KEY,
   TOKEN_STORAGE_KEY,
+  USER_SETTINGS_STORAGE_KEY,
 } from '../config/app.config';
-import { settingsService, SettingItem } from '../services/settings.service';
+import { SettingItem, settingsService } from '../services/settings.service';
 import { cookieHelper } from './cookie-helper';
 
 const SETTING_KEYS = {
@@ -13,7 +13,6 @@ const SETTING_KEYS = {
   SHOW_EXAMPLE_QUESTIONS: 'show_example_questions',
   SELECTED_PERSONA_ID: 'selected_persona_id',
   AUTO_EXPAND_REASONING: 'auto_expand_reasoning',
-  SHOW_VOICE_TEXT_SUGGESTIONS: 'show_voice_text_suggestions',
   USE_REASONING: 'use_reasoning',
 } as const;
 
@@ -22,7 +21,6 @@ interface Settings {
   showExampleQuestions: boolean;
   selectedPersonaId?: string;
   autoExpandReasoning: boolean;
-  showVoiceSuggestions: boolean;
   useReasoning: boolean;
 }
 
@@ -31,7 +29,6 @@ const DEFAULT_SETTINGS: Settings = {
   showExampleQuestions: true,
   selectedPersonaId: undefined,
   autoExpandReasoning: true,
-  showVoiceSuggestions: false,
   useReasoning: false,
 };
 
@@ -49,7 +46,7 @@ const SettingsContext = createContext<SettingsContextType | undefined>(
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount (do not treat dev-only flags as user settings)
   useEffect(() => {
     const saved = localStorage.getItem(USER_SETTINGS_STORAGE_KEY);
     if (saved) {
@@ -67,10 +64,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             parsed.autoExpandReasoning !== undefined
               ? parsed.autoExpandReasoning
               : prev.autoExpandReasoning,
-          showVoiceSuggestions:
-            parsed.showVoiceSuggestions !== undefined
-              ? parsed.showVoiceSuggestions
-              : prev.showVoiceSuggestions,
           useReasoning:
             parsed.useReasoning !== undefined
               ? parsed.useReasoning
@@ -96,8 +89,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             newSettings.selectedPersonaId = item.value;
           if (item.key === SETTING_KEYS.AUTO_EXPAND_REASONING)
             newSettings.autoExpandReasoning = item.value === 'true';
-          if (item.key === SETTING_KEYS.SHOW_VOICE_TEXT_SUGGESTIONS)
-            newSettings.showVoiceSuggestions = item.value === 'true';
           if (item.key === SETTING_KEYS.USE_REASONING)
             newSettings.useReasoning = item.value === 'true';
         });
@@ -147,12 +138,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         apiPayload.push({
           key: SETTING_KEYS.AUTO_EXPAND_REASONING,
           value: String(newSettings.autoExpandReasoning),
-        });
-      }
-      if (newSettings.showVoiceSuggestions !== undefined) {
-        apiPayload.push({
-          key: SETTING_KEYS.SHOW_VOICE_TEXT_SUGGESTIONS,
-          value: String(newSettings.showVoiceSuggestions),
         });
       }
       if (newSettings.useReasoning !== undefined) {

@@ -11,7 +11,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { conversationService } from '@/services/conversation.service';
+import { chatbotService } from '@/services/chatbot.service';
 import { AlertCircle, Check, Copy, Loader2, Share2 } from 'lucide-react';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 interface ShareModalProps {
@@ -53,7 +55,18 @@ export function ShareModal({ isOpen, onClose, chatId }: ShareModalProps) {
     setErrorMessage('');
 
     try {
-      const data = await conversationService.generateShareLink(chatId);
+      // 1. Get latest messages from Python chatbot service
+      const messages = await chatbotService.getChatMessages(chatId);
+      const calculatedLastMessageId =
+        messages && messages.length > 0
+          ? messages[messages.length - 1].id
+          : null;
+
+      // 2. Generate share link passing calculatedLastMessageId
+      const data = await conversationService.generateShareLink(
+        chatId,
+        calculatedLastMessageId
+      );
       const fullUrl = `${window.location.origin}${data.shareUrl}`;
 
       setShareUrl(fullUrl);
@@ -152,8 +165,13 @@ export function ShareModal({ isOpen, onClose, chatId }: ShareModalProps) {
                   • Link này cho phép xem nội dung cuộc trò chuyện công khai
                 </li>
                 <li>
-                  • Bạn có thể thu hồi link bất cứ lúc nào từ trang Quản lý chia
-                  sẻ
+                  • Bạn có thể thu hồi link bất cứ lúc nào từ trang{' '}
+                  <Link
+                    href="/shares"
+                    className="font-semibold text-blue-600 hover:underline dark:text-blue-400"
+                  >
+                    Quản lý chia sẻ
+                  </Link>
                 </li>
                 <li>• Không chia sẻ link chứa thông tin nhạy cảm</li>
               </ul>

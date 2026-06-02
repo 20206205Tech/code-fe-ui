@@ -15,6 +15,15 @@ export interface StreamUpdate {
   pending_confirmation?: boolean;
 }
 
+export interface SharedChat {
+  shareId: string;
+  chatId: string;
+  shareUrl: string;
+  status: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
 const CONVERSATION_BASE = `/${CODE_CONVERSATION_SERVICE_NAME}/chats`;
 const BOOKMARK_BASE = `/${CODE_CONVERSATION_SERVICE_NAME}/bookmarks`;
 const SHARE_BASE = `/${CODE_CONVERSATION_SERVICE_NAME}/shared-chats`;
@@ -229,16 +238,19 @@ export const conversationService = {
   },
 
   // Share methods
-  generateShareLink: (chatId: string) =>
+  generateShareLink: (chatId: string, lastMessageId?: string | null) =>
     apiHelper.post<{
       shareId: string;
       chatId: string;
       status: string;
       shareUrl: string;
-    }>(`${SHARE_BASE}`, { chat_id: chatId }),
+    }>(`${SHARE_BASE}`, {
+      chat_id: chatId,
+      last_message_id: lastMessageId || undefined,
+    }),
 
   getMySharedChats: (skip = 0, limit = 100) => {
-    return apiHelper.get<any>(`${SHARE_BASE}/me`, {
+    return apiHelper.get<SharedChat[]>(`${SHARE_BASE}`, {
       params: { skip, limit },
     });
   },

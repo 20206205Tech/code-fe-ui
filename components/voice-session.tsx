@@ -1,9 +1,8 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { VOICE_SUGGESTIONS } from '@/config/voice.config';
+import { SHOW_VOICE_TEXT_SUGGESTIONS, VOICE_SUGGESTIONS } from '@/config/voice.config';
 import { cn } from '@/lib/utils';
-import { useSettings } from '@/lib/settings-context';
 import { conversationService } from '@/services/conversation.service';
 import { AudioLines, Loader2, MessageSquare, Send } from 'lucide-react';
 import {
@@ -84,7 +83,6 @@ export function VoiceSessionUI({
   const connectionState = useConnectionState();
   const room = useRoomContext();
   const [devInput, setDevInput] = useState('');
-  const { settings } = useSettings();
 
   const lastProcessedFinalText = useRef<Record<string, string>>({});
   const lastProcessedTime = useRef<Record<string, number>>({});
@@ -218,7 +216,7 @@ export function VoiceSessionUI({
 
     return (
       <div className="flex flex-col items-end gap-2 relative">
-        {settings.showVoiceSuggestions && (
+        {SHOW_VOICE_TEXT_SUGGESTIONS && (
           <div className="absolute bottom-full mb-3 right-0 flex flex-col gap-2 bg-white dark:bg-slate-900 p-2 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 animate-in fade-in slide-in-from-bottom-2 duration-300 z-50 min-w-[320px]">
             <div className="flex items-center gap-2">
               <div className="bg-blue-50 dark:bg-blue-900/20 p-1.5 rounded-lg shrink-0">

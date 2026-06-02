@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { conversationService } from '@/services/conversation.service';
+import type { SharedChat } from '@/services/conversation.service';
 import {
   AlertCircle,
   Check,
@@ -23,14 +24,6 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-
-interface SharedChat {
-  shareId: string;
-  chatId: string;
-  shareUrl: string;
-  isActive: boolean;
-  createdAt: string;
-}
 
 export default function SharesManager() {
   const { toast } = useToast();
@@ -48,7 +41,7 @@ export default function SharesManager() {
     setIsLoading(true);
     try {
       const data = await conversationService.getMySharedChats(0, 100);
-      setShares(data.data || []);
+      setShares(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to load shares:', error);
       toast({
@@ -175,7 +168,7 @@ export default function SharesManager() {
                 </div>
 
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Được tạo lúc {formatDate(share.createdAt)}
+                  Được tạo  {formatDate(share.createdAt)}
                 </p>
               </div>
 
