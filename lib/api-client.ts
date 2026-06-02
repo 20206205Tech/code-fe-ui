@@ -67,11 +67,25 @@ apiClient.interceptors.response.use(
   },
   (error) => {
     const fullUrl = `${error.config?.baseURL || ''}${error.config?.url || ''}`;
-    console.error(
-      `❌ [Kong -> NextJS] LỖI ${error.response?.status} tại ${fullUrl}`
-    );
-    if (error.response?.data) {
-      console.error('Chi tiết lỗi từ Kong:', error.response.data);
+    const status = error.response?.status;
+
+    // Nếu là các lỗi Client (400, 401, 403, 404, etc.) - thường là lỗi nghiệp vụ (như yêu cầu VIP)
+    // thì ta log dưới dạng console.warn để tránh gây hiểu nhầm là lỗi sập hệ thống (Crash).
+    // Chỉ log console.error cho các lỗi Server (5xx) hoặc mất kết nối.
+    if (status && status < 500) {
+      console.warn(
+        `⚠️ [Kong -> NextJS] Lỗi nghiệp vụ ${status} tại ${fullUrl}`
+      );
+      if (error.response?.data) {
+        console.warn('Chi tiết lỗi:', error.response.data);
+      }
+    } else {
+      console.error(
+        `❌ [Kong -> NextJS] LỖI HỆ THỐNG ${status || 'Unknown'} tại ${fullUrl}`
+      );
+      if (error.response?.data) {
+        console.error('Chi tiết lỗi hệ thống từ Kong:', error.response.data);
+      }
     }
     return Promise.reject(error);
   }
