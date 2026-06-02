@@ -247,7 +247,7 @@ export const conversationService = {
     }>(`${SHARE_BASE}`, { chat_id: chatId }),
 
   getMySharedChats: (skip = 0, limit = 100) => {
-    return apiHelper.get<SharedChat[]>(`${SHARE_BASE}/me`, {
+    return apiHelper.get<SharedChat[]>(`${SHARE_BASE}`, {
       params: { skip, limit },
     });
   },
