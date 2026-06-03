@@ -76,7 +76,7 @@ export const personaService = {
     voice_id?: string
   ): Promise<PaginatedPersona> => {
     return apiHelper.get<PaginatedPersona>(
-      `/${CODE_PERSONA_SERVICE_NAME}/persona/public`,
+      `/${CODE_PERSONA_SERVICE_NAME}/public`,
       {
         params: { page, size, voice_id },
       }
@@ -140,13 +140,13 @@ export const personaService = {
 
   getEngines: (): Promise<TTSEngine[]> => {
     return apiHelper.get<TTSEngine[]>(
-      `/${CODE_PERSONA_SERVICE_NAME}/persona/engines`
+      `/${CODE_PERSONA_SERVICE_NAME}/public/engines`
     );
   },
 
   getVoices: (engine_code?: string): Promise<TTSVoice[]> => {
     return apiHelper.get<TTSVoice[]>(
-      `/${CODE_PERSONA_SERVICE_NAME}/persona/voices`,
+      `/${CODE_PERSONA_SERVICE_NAME}/public/voices`,
       {
         params: { engine_code },
       }
