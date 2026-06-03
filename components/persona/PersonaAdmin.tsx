@@ -19,6 +19,8 @@ import {
   UpdatePersonaRequestDto,
   AdminAudioGenerateRequestDto,
   personaService,
+  TTSEngine,
+  TTSVoice,
 } from '@/services/persona.service';
 import { Button } from '@/components/ui/button';
 import {
@@ -53,6 +55,9 @@ export default function PersonaAdmin() {
   const [isUploading, setIsUploading] = useState(false);
   const [editingPersona, setEditingPersona] = useState<Persona | null>(null);
 
+  const [engines, setEngines] = useState<TTSEngine[]>([]);
+  const [voices, setVoices] = useState<TTSVoice[]>([]);
+
   // Voice preview states
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [audioInstance, setAudioInstance] = useState<HTMLAudioElement | null>(
@@ -65,6 +70,7 @@ export default function PersonaAdmin() {
   const [formData, setFormData] = useState<CreatePersonaRequestDto>({
     name: '',
     gender: '',
+    tts_engine: '',
     voice_id: '',
     description: '',
     avatar_url: '',
@@ -75,6 +81,7 @@ export default function PersonaAdmin() {
 
   useEffect(() => {
     fetchPersonas();
+    fetchEnginesAndVoices();
   }, []);
 
   const fetchPersonas = async () => {
@@ -90,11 +97,25 @@ export default function PersonaAdmin() {
     }
   };
 
+  const fetchEnginesAndVoices = async () => {
+    try {
+      const [enginesData, voicesData] = await Promise.all([
+        personaService.getEngines(),
+        personaService.getVoices(),
+      ]);
+      setEngines(enginesData);
+      setVoices(voicesData);
+    } catch (error) {
+      console.error('Failed to fetch engines/voices:', error);
+    }
+  };
+
   const handleOpenCreateDialog = () => {
     setEditingPersona(null);
     setFormData({
       name: '',
       gender: '',
+      tts_engine: '',
       voice_id: '',
       description: '',
       avatar_url: '',
@@ -110,6 +131,7 @@ export default function PersonaAdmin() {
     setFormData({
       name: persona.name,
       gender: persona.gender || '',
+      tts_engine: persona.tts_engine || '',
       voice_id: persona.voice_id,
       description: persona.description || '',
       avatar_url: persona.avatar_url || '',
@@ -350,48 +372,100 @@ export default function PersonaAdmin() {
                 </div>
               </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="name">Tên nhân vật</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  placeholder="VD: Trợ lý luật pháp"
-                  required
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="tts_engine">TTS Engine</Label>
+                  <select
+                    id="tts_engine"
+                    value={formData.tts_engine || ''}
+                    onChange={(e) => {
+                      const selectedEngine = e.target.value;
+                      setFormData({
+                        ...formData,
+                        tts_engine: selectedEngine,
+                        voice_id: '',
+                      });
+                    }}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    required
+                  >
+                    <option value="" disabled>
+                      Chọn Engine
+                    </option>
+                    {engines.map((engine) => (
+                      <option key={engine.id} value={engine.code}>
+                        {engine.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="voice_id">Voice ID</Label>
+                  <select
+                    id="voice_id"
+                    value={formData.voice_id || ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, voice_id: e.target.value })
+                    }
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    required
+                    disabled={!formData.tts_engine}
+                  >
+                    <option value="" disabled>
+                      {formData.tts_engine
+                        ? 'Chọn Voice'
+                        : 'Vui lòng chọn Engine trước'}
+                    </option>
+                    {voices
+                      .filter((voice) => {
+                        const engine = engines.find(
+                          (e) => e.id === voice.engine_id
+                        );
+                        return engine?.code === formData.tts_engine;
+                      })
+                      .map((voice) => (
+                        <option key={voice.id} value={voice.voice_id}>
+                          {voice.voice_id}
+                        </option>
+                      ))}
+                  </select>
+                </div>
               </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="gender">Giới tính</Label>
-                <select
-                  id="gender"
-                  value={formData.gender || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, gender: e.target.value })
-                  }
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  required
-                >
-                  <option value="" disabled>Chọn giới tính</option>
-                  <option value="Nam">Nam</option>
-                  <option value="Nữ">Nữ</option>
-                  <option value="Khác">Khác</option>
-                </select>
-              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="name">Tên nhân vật</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                    placeholder="VD: Trợ lý luật pháp"
+                    required
+                  />
+                </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="voice_id">Voice ID </Label>
-                <Input
-                  id="voice_id"
-                  value={formData.voice_id}
-                  onChange={(e) =>
-                    setFormData({ ...formData, voice_id: e.target.value })
-                  }
-                  placeholder="VD: vi-VN-HoaiMyNeural"
-                  required
-                />
+                <div className="grid gap-2">
+                  <Label htmlFor="gender">Giới tính</Label>
+                  <select
+                    id="gender"
+                    value={formData.gender || ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, gender: e.target.value })
+                    }
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    required
+                  >
+                    <option value="" disabled>
+                      Chọn giới tính
+                    </option>
+                    <option value="Nam">Nam</option>
+                    <option value="Nữ">Nữ</option>
+                    <option value="Khác">Khác</option>
+                  </select>
+                </div>
               </div>
 
               <div className="grid gap-2">
@@ -456,9 +530,9 @@ export default function PersonaAdmin() {
                   </div>
                 </div>
               </div>
-
-              <div className="flex items-center justify-between">
-                <Label htmlFor="active">Kích hoạt</Label>
+            </div>
+            <DialogFooter className="sm:justify-between items-center w-full">
+              <div className="flex items-center gap-2">
                 <Switch
                   id="active"
                   checked={formData.is_active}
@@ -466,22 +540,28 @@ export default function PersonaAdmin() {
                     setFormData({ ...formData, is_active: checked })
                   }
                 />
+                <Label
+                  htmlFor="active"
+                  className="cursor-pointer text-sm font-medium"
+                >
+                  Kích hoạt
+                </Label>
               </div>
-            </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsOpeningDialog(false)}
-              >
-                Hủy
-              </Button>
-              <Button type="submit" disabled={isSubmitting || isUploading}>
-                {isSubmitting && (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                )}
-                {editingPersona ? 'Cập nhật' : 'Tạo mới'}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsOpeningDialog(false)}
+                >
+                  Hủy
+                </Button>
+                <Button type="submit" disabled={isSubmitting || isUploading}>
+                  {isSubmitting && (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  )}
+                  {editingPersona ? 'Cập nhật' : 'Tạo mới'}
+                </Button>
+              </div>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -494,6 +574,7 @@ export default function PersonaAdmin() {
               <TableHead className="w-[80px]">Avatar</TableHead>
               <TableHead>Tên nhân vật</TableHead>
               <TableHead>Giới tính</TableHead>
+              <TableHead>Engine</TableHead>
               <TableHead>Voice ID</TableHead>
               <TableHead>Trạng thái</TableHead>
               <TableHead className="text-right">Thao tác</TableHead>
@@ -503,7 +584,7 @@ export default function PersonaAdmin() {
             {personas.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={7}
                   className="text-center py-8 text-muted-foreground"
                 >
                   Chưa có nhân vật nào được tạo.
@@ -527,7 +608,17 @@ export default function PersonaAdmin() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{persona.gender || 'Chưa chọn'}</Badge>
+                    <Badge variant="outline">
+                      {persona.gender || 'Chưa chọn'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="secondary"
+                      className="uppercase font-mono text-xs"
+                    >
+                      {persona.tts_engine || 'edge_tts'}
+                    </Badge>
                   </TableCell>
                   <TableCell className="font-mono text-xs">
                     {persona.voice_id}
