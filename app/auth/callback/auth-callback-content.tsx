@@ -52,7 +52,7 @@ export function AuthCallbackContent() {
 
         const type = hashParams.get('type') || searchParams.get('type');
         if (type === 'recovery') {
-          router.push('/auth/reset-password');
+          router.push('/auth/mfa?next=/auth/reset-password');
         } else if (aal === 'aal1') {
           // Redirect to MFA page
           router.push('/auth/mfa');
