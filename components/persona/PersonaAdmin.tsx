@@ -343,7 +343,8 @@ export default function PersonaAdmin() {
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="flex justify-center mb-4">
+              {/* Vòng tròn hiển thị và tải lên ảnh đại diện */}
+              <div className="flex flex-col items-center gap-3 mb-4">
                 <div className="relative group">
                   <Avatar className="w-24 h-24 border-2 border-muted">
                     <AvatarImage src={formData.avatar_url} />
@@ -368,6 +369,25 @@ export default function PersonaAdmin() {
                     accept="image/*"
                     onChange={handleFileUpload}
                     disabled={isUploading}
+                  />
+                </div>
+
+                {/* Ô nhập URL ảnh đại diện */}
+                <div className="grid gap-1 w-full">
+                  <Label
+                    htmlFor="avatar_url"
+                    className="text-xs text-muted-foreground"
+                  >
+                    Hoặc nhập đường dẫn ảnh (URL)
+                  </Label>
+                  <Input
+                    id="avatar_url"
+                    value={formData.avatar_url || ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, avatar_url: e.target.value })
+                    }
+                    placeholder="https://example.com/avatar.png"
+                    className="h-8 text-xs"
                   />
                 </div>
               </div>
