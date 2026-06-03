@@ -2,9 +2,33 @@
 
 import PersonaAdmin from '@/components/persona/PersonaAdmin';
 import { Sidebar } from '@/components/sidebar';
-import { Suspense } from 'react';
+import { useAuth } from '@/lib/auth-context';
+import { useRouter } from 'next/navigation';
+import { Suspense, useEffect } from 'react';
 
 export default function AdminPersonasPage() {
+  const router = useRouter();
+  const { user, isLoading, isAuthenticated } = useAuth();
+  const isAdmin = user?.role === 'admin';
+
+  useEffect(() => {
+    if (!isLoading) {
+      if (!isAuthenticated) {
+        router.push('/login');
+      } else if (!isAdmin) {
+        router.push('/chat');
+      }
+    }
+  }, [isLoading, isAuthenticated, isAdmin, router]);
+
+  if (isLoading || !isAdmin) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-950">
       <Suspense
@@ -24,3 +48,4 @@ export default function AdminPersonasPage() {
     </div>
   );
 }
+
