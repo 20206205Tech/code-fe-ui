@@ -1,7 +1,10 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { SHOW_VOICE_TEXT_SUGGESTIONS, VOICE_SUGGESTIONS } from '@/config/voice.config';
+import {
+  SHOW_VOICE_TEXT_SUGGESTIONS,
+  VOICE_SUGGESTIONS,
+} from '@/config/voice.config';
 import { cn } from '@/lib/utils';
 import { conversationService } from '@/services/conversation.service';
 import { AudioLines, Loader2, MessageSquare, Send } from 'lucide-react';
@@ -39,7 +42,7 @@ interface VoiceSessionProps {
   userId: string;
   fileIds: string[];
   useReasoning: boolean;
-  voiceId?: string;
+  personaId?: string;
   isVip: boolean;
   onMessage?: (
     role: string,
@@ -289,14 +292,14 @@ function MetadataSync({
   userId,
   fileIds,
   useReasoning,
-  voiceId,
+  personaId,
   pendingMetadataRef,
 }: {
   chatId: string;
   userId: string;
   fileIds: string[];
   useReasoning: boolean;
-  voiceId?: string;
+  personaId?: string;
   pendingMetadataRef?: React.MutableRefObject<string | null>;
 }) {
   const room = useRoomContext();
@@ -336,7 +339,7 @@ function MetadataSync({
         user_id: userId,
         file_ids: fileIds,
         use_reasoning: useReasoning,
-        voice_id: voiceId,
+        persona_id: personaId,
       });
 
       // Luôn gửi metadata khi room vừa kết nối hoặc khi dependencies thay đổi
@@ -354,7 +357,7 @@ function MetadataSync({
         userId,
         file_ids: fileIds,
         use_reasoning: useReasoning,
-        voice_id: voiceId,
+        persona_id: personaId,
       });
 
       // Gửi metadata
@@ -375,7 +378,7 @@ function MetadataSync({
     userId,
     JSON.stringify(fileIds),
     useReasoning,
-    voiceId,
+    personaId,
     connectionState,
     room,
   ]);
@@ -403,7 +406,7 @@ export const VoiceSession = forwardRef<VoiceSessionHandle, VoiceSessionProps>(
       userId,
       fileIds,
       useReasoning,
-      voiceId,
+      personaId,
       isVip,
       onChatCreated,
       onMessage,
@@ -430,7 +433,7 @@ export const VoiceSession = forwardRef<VoiceSessionHandle, VoiceSessionProps>(
     const userIdRef = useRef(userId);
     const fileIdsRef = useRef(fileIds);
     const useReasoningRef = useRef(useReasoning);
-    const voiceIdRef = useRef(voiceId);
+    const personaIdRef = useRef(personaId);
     const tokenRef = useRef(token);
     const serverUrlRef = useRef(serverUrl);
 
@@ -439,7 +442,7 @@ export const VoiceSession = forwardRef<VoiceSessionHandle, VoiceSessionProps>(
     userIdRef.current = userId;
     fileIdsRef.current = fileIds;
     useReasoningRef.current = useReasoning;
-    voiceIdRef.current = voiceId;
+    personaIdRef.current = personaId;
     tokenRef.current = token;
     serverUrlRef.current = serverUrl;
 
@@ -450,7 +453,7 @@ export const VoiceSession = forwardRef<VoiceSessionHandle, VoiceSessionProps>(
         user_id: userIdRef.current,
         file_ids: overrideFileIds ?? fileIdsRef.current,
         use_reasoning: useReasoningRef.current,
-        voice_id: voiceIdRef.current,
+        persona_id: personaIdRef.current,
       });
 
     // Xuất hàm gửi tin nhắn ra ngoài cho ChatInput dùng
@@ -511,7 +514,7 @@ export const VoiceSession = forwardRef<VoiceSessionHandle, VoiceSessionProps>(
     }));
 
     // Tự động ngắt kết nối khi chuyển chat (KHÔNG ngắt khi đổi persona)
-    // Khi voiceId thay đổi, MetadataSync sẽ tự động gửi metadata mới lên LiveKit
+    // Khi personaId thay đổi, MetadataSync sẽ tự động gửi metadata mới lên LiveKit
     useEffect(() => {
       if (token || serverUrl) {
         handleEndSession();
@@ -520,8 +523,8 @@ export const VoiceSession = forwardRef<VoiceSessionHandle, VoiceSessionProps>(
 
     const handleStartSession = async () => {
       console.log(
-        '[VoiceSession] 🎤 Bắt đầu phiên thoại với voiceId:',
-        voiceId
+        '[VoiceSession] 🎤 Bắt đầu phiên thoại với personaId:',
+        personaId
       );
       if (!isVip) {
         toast.info(
@@ -550,7 +553,7 @@ export const VoiceSession = forwardRef<VoiceSessionHandle, VoiceSessionProps>(
           effectiveChatId,
           fileIds,
           useReasoning,
-          voiceId
+          personaId
         );
         if (response && response.token) {
           console.log('[VoiceSession] ✅ Token nhận được, kết nối LiveKit');
@@ -639,7 +642,7 @@ export const VoiceSession = forwardRef<VoiceSessionHandle, VoiceSessionProps>(
             userId={userId}
             fileIds={fileIds}
             useReasoning={useReasoning}
-            voiceId={voiceId}
+            personaId={personaId}
             pendingMetadataRef={pendingMetadataRef}
           />
           <VoiceSessionUI

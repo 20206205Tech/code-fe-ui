@@ -3,14 +3,7 @@
 import { Sidebar } from '@/components/sidebar';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import {
-  ArrowLeft,
-  AudioLines,
-  Brain,
-  MessageSquare,
-  Moon,
-  Sun,
-} from 'lucide-react';
+import { ArrowLeft, Brain, MessageSquare, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import { Suspense, useEffect, useState } from 'react';
@@ -39,10 +32,6 @@ export default function SettingsPage() {
 
   const handleToggleAutoExpandReasoning = (checked: boolean) => {
     updateSettings({ autoExpandReasoning: checked });
-  };
-
-  const handleToggleVoiceSuggestions = (checked: boolean) => {
-    updateSettings({ showVoiceSuggestions: checked });
   };
 
   const currentTheme = theme === 'system' ? systemTheme : theme;
@@ -170,31 +159,6 @@ export default function SettingsPage() {
                   id="auto-expand-reasoning-toggle"
                   checked={settings.autoExpandReasoning}
                   onCheckedChange={handleToggleAutoExpandReasoning}
-                />
-              </div>
-            </div>
-
-            {/* Gợi ý câu hỏi voice */}
-            <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-6 mb-8 transition-colors">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 rounded-full">
-                    <AudioLines size={24} />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-                      Gợi ý câu hỏi Voice
-                    </h2>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                      Hiển thị các câu hỏi gợi ý khi đang trong phiên hội thoại
-                      thoại
-                    </p>
-                  </div>
-                </div>
-                <Switch
-                  id="voice-suggestions-toggle"
-                  checked={settings.showVoiceSuggestions}
-                  onCheckedChange={handleToggleVoiceSuggestions}
                 />
               </div>
             </div>

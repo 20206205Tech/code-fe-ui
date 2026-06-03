@@ -6,7 +6,8 @@ export interface Persona {
   name: string;
   gender?: string;
   tts_engine?: string;
-  voice_id: string;
+  voice_uuid: string;
+  voice_code: string;
   description?: string;
   avatar_url?: string;
   greeting_audio_url?: string;
@@ -19,8 +20,7 @@ export interface Persona {
 export interface CreatePersonaRequestDto {
   name: string;
   gender?: string;
-  tts_engine?: string;
-  voice_id: string;
+  voice_uuid: string;
   description?: string;
   avatar_url?: string;
   greeting_audio_url?: string;
@@ -31,8 +31,7 @@ export interface CreatePersonaRequestDto {
 export interface UpdatePersonaRequestDto {
   name?: string;
   gender?: string;
-  tts_engine?: string;
-  voice_id?: string;
+  voice_uuid?: string;
   description?: string;
   avatar_url?: string;
   greeting_audio_url?: string;
@@ -42,7 +41,7 @@ export interface UpdatePersonaRequestDto {
 
 export interface AdminAudioGenerateRequestDto {
   text: string;
-  voice_id?: string;
+  voice_uuid?: string;
   speed?: number;
   response_format?: string;
 }
@@ -63,8 +62,8 @@ export interface TTSEngine {
 }
 
 export interface TTSVoice {
-  id: string;
-  voice_id: string;
+  voice_uuid: string;
+  voice_code: string;
   engine_id: string;
   is_active: boolean;
 }
@@ -73,13 +72,19 @@ export const personaService = {
   getPersonas: (
     page: number = 1,
     size: number = 10,
-    voice_id?: string
+    voice_uuid?: string
   ): Promise<PaginatedPersona> => {
     return apiHelper.get<PaginatedPersona>(
       `/${CODE_PERSONA_SERVICE_NAME}/public`,
       {
-        params: { page, size, voice_id },
+        params: { page, size, voice_uuid },
       }
+    );
+  },
+
+  getPersonaById: (id: string): Promise<Persona> => {
+    return apiHelper.get<Persona>(
+      `/${CODE_PERSONA_SERVICE_NAME}/public/persona/${id}`
     );
   },
 
@@ -177,7 +182,9 @@ export const personaService = {
     );
   },
   deleteEngine: (id: string): Promise<void> => {
-    return apiHelper.delete<void>(`/${CODE_PERSONA_SERVICE_NAME}/engines/${id}`);
+    return apiHelper.delete<void>(
+      `/${CODE_PERSONA_SERVICE_NAME}/engines/${id}`
+    );
   },
 
   // VOICES ADMIN CRUD
@@ -187,7 +194,7 @@ export const personaService = {
     });
   },
   createVoice: (data: {
-    voice_id: string;
+    voice_code: string;
     engine_id: string;
     is_active: boolean;
   }): Promise<TTSVoice> => {
@@ -197,15 +204,17 @@ export const personaService = {
     );
   },
   updateVoice: (
-    id: string,
-    data: Partial<{ voice_id: string; engine_id: string; is_active: boolean }>
+    voice_uuid: string,
+    data: Partial<{ voice_code: string; engine_id: string; is_active: boolean }>
   ): Promise<TTSVoice> => {
     return apiHelper.put<TTSVoice>(
-      `/${CODE_PERSONA_SERVICE_NAME}/voices/${id}`,
+      `/${CODE_PERSONA_SERVICE_NAME}/voices/${voice_uuid}`,
       data
     );
   },
-  deleteVoice: (id: string): Promise<void> => {
-    return apiHelper.delete<void>(`/${CODE_PERSONA_SERVICE_NAME}/voices/${id}`);
+  deleteVoice: (voice_uuid: string): Promise<void> => {
+    return apiHelper.delete<void>(
+      `/${CODE_PERSONA_SERVICE_NAME}/voices/${voice_uuid}`
+    );
   },
 };

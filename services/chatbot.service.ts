@@ -10,7 +10,7 @@ export interface ChatSession {
 export interface APIChatMessage {
   id: string;
   role: 'human' | 'ai';
-  voice_id: string | null;
+  persona_id: string | null;
   content: string;
   created_at: string;
   reasoning_steps?: { content: string; step_order: number }[];

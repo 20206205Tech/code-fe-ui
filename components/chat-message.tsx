@@ -30,7 +30,7 @@ interface ChatMessageProps {
     retrieval_type?: string;
     score?: number;
   }[];
-  voice_id?: string | null;
+  persona_id?: string | null;
   reasoning_steps?: { content: string; step_order: number; hidden?: boolean }[];
   status?: string | null;
   pending_confirmation?: boolean;
@@ -44,7 +44,7 @@ export function ChatMessage({
   userName = 'User',
   isStreaming,
   sources,
-  voice_id,
+  persona_id,
   reasoning_steps,
   status,
   pending_confirmation,
@@ -69,22 +69,21 @@ export function ChatMessage({
   }, [reasoning_steps, settings.autoExpandReasoning]);
 
   useEffect(() => {
-    // Only fetch if it's an assistant message, we have a voice_id, AND no avatar was passed in props
-    if (!isUser && voice_id && !avatar) {
+    // Only fetch if it's an assistant message, we have a persona_id, AND no avatar was passed in props
+    if (!isUser && persona_id && !avatar) {
       // Check global cache
-      if (globalPersonaCache[voice_id]) {
-        setPersonaAvatar(globalPersonaCache[voice_id]);
+      if (globalPersonaCache[persona_id]) {
+        setPersonaAvatar(globalPersonaCache[persona_id]);
         return;
       }
 
       const fetchPersona = async () => {
         try {
-          // Note: This is now a fallback. Ideally the parent component should resolve the avatar.
-          const result = await personaService.getPersonas(1, 1, voice_id);
-          const persona = result.items.length > 0 ? result.items[0] : null;
+          const result = await personaService.getPersonaById(persona_id);
+          const persona = result ?? null;
 
           if (persona?.avatar_url) {
-            globalPersonaCache[voice_id] = persona.avatar_url;
+            globalPersonaCache[persona_id] = persona.avatar_url;
             setPersonaAvatar(persona.avatar_url);
           }
         } catch (error) {
@@ -96,17 +95,17 @@ export function ChatMessage({
       };
       fetchPersona();
     }
-  }, [isUser, voice_id, avatar]);
+  }, [isUser, persona_id, avatar]);
 
   const displayAvatar = avatar || personaAvatar;
 
   useEffect(() => {
     if (!isUser) {
       console.log(
-        `[ChatMessage] Assistant msg - voice_id: ${voice_id}, avatar: ${avatar}, displayAvatar: ${displayAvatar}`
+        `[ChatMessage] Assistant msg - persona_id: ${persona_id}, avatar: ${avatar}, displayAvatar: ${displayAvatar}`
       );
     }
-  }, [isUser, voice_id, avatar, displayAvatar]);
+  }, [isUser, persona_id, avatar, displayAvatar]);
 
   return (
     <div

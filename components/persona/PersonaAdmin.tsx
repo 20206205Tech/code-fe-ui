@@ -54,6 +54,7 @@ export default function PersonaAdmin() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [editingPersona, setEditingPersona] = useState<Persona | null>(null);
+  const [selectedEngine, setSelectedEngine] = useState<string>('');
 
   const [engines, setEngines] = useState<TTSEngine[]>([]);
   const [voices, setVoices] = useState<TTSVoice[]>([]);
@@ -70,8 +71,7 @@ export default function PersonaAdmin() {
   const [formData, setFormData] = useState<CreatePersonaRequestDto>({
     name: '',
     gender: '',
-    tts_engine: '',
-    voice_id: '',
+    voice_uuid: '',
     description: '',
     avatar_url: '',
     greeting_audio_url: '',
@@ -100,8 +100,10 @@ export default function PersonaAdmin() {
   const fetchEnginesAndVoices = async () => {
     try {
       const [enginesData, voicesData] = await Promise.all([
-        personaService.getEngines(),
-        personaService.getVoices(),
+        // personaService.getEngines(),
+        // personaService.getVoices(),
+        personaService.getEnginesAdmin(),
+        personaService.getVoicesAdmin(),
       ]);
       setEngines(enginesData);
       setVoices(voicesData);
@@ -112,11 +114,11 @@ export default function PersonaAdmin() {
 
   const handleOpenCreateDialog = () => {
     setEditingPersona(null);
+    setSelectedEngine('');
     setFormData({
       name: '',
       gender: '',
-      tts_engine: '',
-      voice_id: '',
+      voice_uuid: '',
       description: '',
       avatar_url: '',
       greeting_audio_url: '',
@@ -128,11 +130,15 @@ export default function PersonaAdmin() {
 
   const handleOpenEditDialog = (persona: Persona) => {
     setEditingPersona(persona);
+    const voiceObj = voices.find((v) => v.voice_uuid === persona.voice_uuid);
+    const engineObj = voiceObj
+      ? engines.find((e) => e.id === voiceObj.engine_id)
+      : null;
+    setSelectedEngine(engineObj ? engineObj.code : '');
     setFormData({
       name: persona.name,
       gender: persona.gender || '',
-      tts_engine: persona.tts_engine || '',
-      voice_id: persona.voice_id,
+      voice_uuid: persona.voice_uuid,
       description: persona.description || '',
       avatar_url: persona.avatar_url || '',
       greeting_audio_url: persona.greeting_audio_url || '',
@@ -203,7 +209,7 @@ export default function PersonaAdmin() {
       setIsPreviewLoading(true);
       const blob = await personaService.generateAdminAudioPreview({
         text: formData.greeting_text,
-        voice_id: formData.voice_id || undefined,
+        voice_uuid: formData.voice_uuid || undefined,
         speed: 1.0,
       });
 
@@ -397,13 +403,13 @@ export default function PersonaAdmin() {
                   <Label htmlFor="tts_engine">TTS Engine</Label>
                   <select
                     id="tts_engine"
-                    value={formData.tts_engine || ''}
+                    value={selectedEngine}
                     onChange={(e) => {
-                      const selectedEngine = e.target.value;
+                      const selected = e.target.value;
+                      setSelectedEngine(selected);
                       setFormData({
                         ...formData,
-                        tts_engine: selectedEngine,
-                        voice_id: '',
+                        voice_uuid: '',
                       });
                     }}
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -421,19 +427,19 @@ export default function PersonaAdmin() {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="voice_id">Voice ID</Label>
+                  <Label htmlFor="voice_uuid">Voice ID</Label>
                   <select
-                    id="voice_id"
-                    value={formData.voice_id || ''}
+                    id="voice_uuid"
+                    value={formData.voice_uuid || ''}
                     onChange={(e) =>
-                      setFormData({ ...formData, voice_id: e.target.value })
+                      setFormData({ ...formData, voice_uuid: e.target.value })
                     }
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     required
-                    disabled={!formData.tts_engine}
+                    disabled={!selectedEngine}
                   >
                     <option value="" disabled>
-                      {formData.tts_engine
+                      {selectedEngine
                         ? 'Chọn Voice'
                         : 'Vui lòng chọn Engine trước'}
                     </option>
@@ -442,11 +448,11 @@ export default function PersonaAdmin() {
                         const engine = engines.find(
                           (e) => e.id === voice.engine_id
                         );
-                        return engine?.code === formData.tts_engine;
+                        return engine?.code === selectedEngine;
                       })
                       .map((voice) => (
-                        <option key={voice.id} value={voice.voice_id}>
-                          {voice.voice_id}
+                        <option key={voice.voice_uuid} value={voice.voice_uuid}>
+                          {voice.voice_code}
                         </option>
                       ))}
                   </select>
@@ -641,7 +647,7 @@ export default function PersonaAdmin() {
                     </Badge>
                   </TableCell>
                   <TableCell className="font-mono text-xs">
-                    {persona.voice_id}
+                    {persona.voice_code}
                   </TableCell>
                   <TableCell>
                     <Badge

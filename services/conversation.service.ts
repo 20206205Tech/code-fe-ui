@@ -195,7 +195,7 @@ export const conversationService = {
     chatId: string,
     fileIds: string[] = [],
     useReasoning: boolean = false,
-    voiceId?: string
+    personaId?: string
   ) => {
     return apiHelper.get<{ token: string; serverUrl: string }>(
       `${CONVERSATION_BASE}/${chatId}/voice-token`,
@@ -203,7 +203,7 @@ export const conversationService = {
         params: {
           file_ids: fileIds,
           use_reasoning: useReasoning,
-          voice_id: voiceId,
+          persona_id: personaId,
         },
       }
     );
