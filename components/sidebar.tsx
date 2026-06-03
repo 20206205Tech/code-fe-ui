@@ -13,6 +13,7 @@ import {
   Menu,
   Plus,
   Settings,
+  Wrench,
   Sparkles,
   Trash2,
   Volume2,
@@ -315,7 +316,7 @@ export function Sidebar() {
                   variant="ghost"
                   className="w-full justify-start text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
-                  <Settings size={18} className="mr-2" />
+                  <Wrench size={18} className="mr-2" />
                   Quản lý Engine
                 </Button>
               </Link>

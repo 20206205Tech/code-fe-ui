@@ -217,4 +217,9 @@ export const personaService = {
       `/${CODE_PERSONA_SERVICE_NAME}/voices/${voice_uuid}`
     );
   },
+  syncElevenLabs: (): Promise<{ synced_count: number; synced_codes: string[] }> => {
+    return apiHelper.post<{ synced_count: number; synced_codes: string[] }>(
+      `/${CODE_PERSONA_SERVICE_NAME}/voices/sync-elevenlabs`
+    );
+  },
 };

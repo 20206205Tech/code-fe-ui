@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Plus, Trash2, Edit2, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, Loader2, RotateCw } from 'lucide-react';
 import {
   TTSVoice,
   TTSEngine,
@@ -37,6 +37,7 @@ export default function VoicesAdmin() {
   const [isOpeningDialog, setIsOpeningDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingVoice, setEditingVoice] = useState<TTSVoice | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -44,6 +45,21 @@ export default function VoicesAdmin() {
     engine_id: '',
     is_active: true,
   });
+
+  const handleSyncElevenLabs = async () => {
+    try {
+      setIsSyncing(true);
+      const res = await personaService.syncElevenLabs();
+      toast.success(`Đồng bộ thành công ${res.synced_count} giọng nói từ ElevenLabs!`);
+      fetchData();
+    } catch (error: any) {
+      console.error('Sync failed:', error);
+      const errMsg = error?.response?.data?.detail || 'Đã xảy ra lỗi';
+      toast.error(`Lỗi đồng bộ ElevenLabs: ${errMsg}`);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -161,9 +177,23 @@ export default function VoicesAdmin() {
           </p>
         </div>
 
-        <Button onClick={handleOpenCreateDialog}>
-          <Plus className="w-4 h-4 mr-2" /> Thêm TTS Voice
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleSyncElevenLabs}
+            disabled={isSyncing}
+          >
+            {isSyncing ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <RotateCw className="w-4 h-4 mr-2" />
+            )}
+            Đồng bộ ElevenLabs
+          </Button>
+          <Button onClick={handleOpenCreateDialog}>
+            <Plus className="w-4 h-4 mr-2" /> Thêm TTS Voice
+          </Button>
+        </div>
       </div>
 
       <Dialog open={isOpeningDialog} onOpenChange={setIsOpeningDialog}>
