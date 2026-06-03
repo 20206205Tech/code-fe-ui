@@ -64,6 +64,7 @@ export default function PersonaAdmin() {
   // Form state
   const [formData, setFormData] = useState<CreatePersonaRequestDto>({
     name: '',
+    gender: '',
     voice_id: '',
     description: '',
     avatar_url: '',
@@ -93,6 +94,7 @@ export default function PersonaAdmin() {
     setEditingPersona(null);
     setFormData({
       name: '',
+      gender: '',
       voice_id: '',
       description: '',
       avatar_url: '',
@@ -107,6 +109,7 @@ export default function PersonaAdmin() {
     setEditingPersona(persona);
     setFormData({
       name: persona.name,
+      gender: persona.gender || '',
       voice_id: persona.voice_id,
       description: persona.description || '',
       avatar_url: persona.avatar_url || '',
@@ -361,6 +364,24 @@ export default function PersonaAdmin() {
               </div>
 
               <div className="grid gap-2">
+                <Label htmlFor="gender">Giới tính</Label>
+                <select
+                  id="gender"
+                  value={formData.gender || ''}
+                  onChange={(e) =>
+                    setFormData({ ...formData, gender: e.target.value })
+                  }
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  required
+                >
+                  <option value="" disabled>Chọn giới tính</option>
+                  <option value="Nam">Nam</option>
+                  <option value="Nữ">Nữ</option>
+                  <option value="Khác">Khác</option>
+                </select>
+              </div>
+
+              <div className="grid gap-2">
                 <Label htmlFor="voice_id">Voice ID </Label>
                 <Input
                   id="voice_id"
@@ -472,6 +493,7 @@ export default function PersonaAdmin() {
             <TableRow>
               <TableHead className="w-[80px]">Avatar</TableHead>
               <TableHead>Tên nhân vật</TableHead>
+              <TableHead>Giới tính</TableHead>
               <TableHead>Voice ID</TableHead>
               <TableHead>Trạng thái</TableHead>
               <TableHead className="text-right">Thao tác</TableHead>
@@ -481,7 +503,7 @@ export default function PersonaAdmin() {
             {personas.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={6}
                   className="text-center py-8 text-muted-foreground"
                 >
                   Chưa có nhân vật nào được tạo.
@@ -503,6 +525,9 @@ export default function PersonaAdmin() {
                     <div className="text-xs text-muted-foreground truncate max-w-[200px]">
                       {persona.description || 'Không có mô tả'}
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{persona.gender || 'Chưa chọn'}</Badge>
                   </TableCell>
                   <TableCell className="font-mono text-xs">
                     {persona.voice_id}

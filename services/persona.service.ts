@@ -4,6 +4,7 @@ import { CODE_PERSONA_SERVICE_NAME } from '@/config/api.constants';
 export interface Persona {
   id: string;
   name: string;
+  gender?: string;
   voice_id: string;
   description?: string;
   avatar_url?: string;
@@ -16,6 +17,7 @@ export interface Persona {
 
 export interface CreatePersonaRequestDto {
   name: string;
+  gender?: string;
   voice_id: string;
   description?: string;
   avatar_url?: string;
@@ -26,6 +28,7 @@ export interface CreatePersonaRequestDto {
 
 export interface UpdatePersonaRequestDto {
   name?: string;
+  gender?: string;
   voice_id?: string;
   description?: string;
   avatar_url?: string;
