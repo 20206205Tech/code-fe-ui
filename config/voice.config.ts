@@ -11,6 +11,7 @@ export const VOICE_SUGGESTIONS = [
   // '1+1',
 ];
 
-// Dev-only flag: controls whether voice text suggestions are enabled globally for development.
-// This is NOT a user setting and should not be persisted per-user.
-export const SHOW_VOICE_TEXT_SUGGESTIONS = false;
+export const SHOW_VOICE_TEXT_SUGGESTIONS =
+  process.env.NODE_ENV === 'development';
+// export const SHOW_VOICE_TEXT_SUGGESTIONS = false;
+// export const SHOW_VOICE_TEXT_SUGGESTIONS = true;
