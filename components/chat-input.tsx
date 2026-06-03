@@ -43,7 +43,7 @@ interface ChatInputProps {
   ) => void;
   onVoiceStatus?: (message: string, hidden?: boolean) => void;
   onAgentState?: (isReasoning: boolean) => void;
-  voiceId?: string;
+  personaId?: string;
   isMessageSending?: boolean;
   useReasoning?: boolean;
 }
@@ -56,7 +56,7 @@ export function ChatInput({
   onVoiceMessage,
   onVoiceStatus,
   onAgentState,
-  voiceId,
+  personaId,
   isMessageSending = false,
   useReasoning = false,
 }: ChatInputProps) {
@@ -575,7 +575,7 @@ export function ChatInput({
                     )
                     .map((d) => d.id)}
                   useReasoning={useReasoning}
-                  voiceId={voiceId}
+                  personaId={personaId}
                   isVip={isVip}
                   ref={voiceRef}
                   onChatCreated={onChatCreated}

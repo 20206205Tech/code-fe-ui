@@ -1,12 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import {
-  Plus,
-  Trash2,
-  Edit2,
-  Loader2,
-} from 'lucide-react';
+import { Plus, Trash2, Edit2, Loader2 } from 'lucide-react';
 import {
   TTSVoice,
   TTSEngine,
@@ -45,7 +40,7 @@ export default function VoicesAdmin() {
 
   // Form state
   const [formData, setFormData] = useState({
-    voice_id: '',
+    voice_code: '',
     engine_id: '',
     is_active: true,
   });
@@ -74,7 +69,7 @@ export default function VoicesAdmin() {
   const handleOpenCreateDialog = () => {
     setEditingVoice(null);
     setFormData({
-      voice_id: '',
+      voice_code: '',
       engine_id: engines.length > 0 ? engines[0].id : '',
       is_active: true,
     });
@@ -84,7 +79,7 @@ export default function VoicesAdmin() {
   const handleOpenEditDialog = (voice: TTSVoice) => {
     setEditingVoice(voice);
     setFormData({
-      voice_id: voice.voice_id,
+      voice_code: voice.voice_code,
       engine_id: voice.engine_id,
       is_active: voice.is_active,
     });
@@ -93,15 +88,15 @@ export default function VoicesAdmin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.voice_id.trim() || !formData.engine_id) {
-      toast.error('Vui lòng nhập đầy đủ Voice ID và chọn Engine');
+    if (!formData.voice_code.trim() || !formData.engine_id) {
+      toast.error('Vui lòng nhập đầy đủ Voice Code và chọn Engine');
       return;
     }
 
     try {
       setIsSubmitting(true);
       if (editingVoice) {
-        await personaService.updateVoice(editingVoice.id, formData);
+        await personaService.updateVoice(editingVoice.voice_uuid, formData);
         toast.success('Đã cập nhật TTS Voice thành công');
       } else {
         await personaService.createVoice(formData);
@@ -122,11 +117,16 @@ export default function VoicesAdmin() {
     }
   };
 
-  const handleDeleteVoice = async (id: string) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa TTS Voice này? Xóa voice có thể ảnh hưởng đến các Nhân vật đang sử dụng nó.')) return;
+  const handleDeleteVoice = async (voice_uuid: string) => {
+    if (
+      !confirm(
+        'Bạn có chắc chắn muốn xóa TTS Voice này? Xóa voice có thể ảnh hưởng đến các Nhân vật đang sử dụng nó.'
+      )
+    )
+      return;
 
     try {
-      await personaService.deleteVoice(id);
+      await personaService.deleteVoice(voice_uuid);
       toast.success('Đã xóa TTS Voice thành công');
       fetchData();
     } catch (error: any) {
@@ -156,7 +156,8 @@ export default function VoicesAdmin() {
         <div>
           <h2 className="text-2xl font-bold">Quản lý TTS Voices</h2>
           <p className="text-muted-foreground text-sm mt-1">
-            Thiết lập danh sách các giọng đọc (Voice IDs) tương ứng với từng Engine
+            Thiết lập danh sách các giọng đọc (voice_code) tương ứng với từng
+            Engine
           </p>
         </div>
 
@@ -173,18 +174,18 @@ export default function VoicesAdmin() {
                 {editingVoice ? 'Chỉnh sửa TTS Voice' : 'Tạo TTS Voice mới'}
               </DialogTitle>
               <DialogDescription>
-                Nhập Voice ID từ bộ máy TTS tương ứng.
+                Nhập mã giọng đọc (voice_code) từ bộ máy TTS tương ứng.
               </DialogDescription>
             </DialogHeader>
 
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="voice_id">Voice ID / Mã giọng đọc</Label>
+                <Label htmlFor="voice_code">Voice Code (mã giọng TTS)</Label>
                 <Input
-                  id="voice_id"
-                  value={formData.voice_id}
+                  id="voice_code"
+                  value={formData.voice_code}
                   onChange={(e) =>
-                    setFormData({ ...formData, voice_id: e.target.value })
+                    setFormData({ ...formData, voice_code: e.target.value })
                   }
                   placeholder="VD: vi-VN-HoaiMyNeural, cjVigY5qzO86Huf0OWal..."
                   required
@@ -221,7 +222,10 @@ export default function VoicesAdmin() {
                     setFormData({ ...formData, is_active: checked })
                   }
                 />
-                <Label htmlFor="active" className="cursor-pointer text-sm font-medium">
+                <Label
+                  htmlFor="active"
+                  className="cursor-pointer text-sm font-medium"
+                >
                   Kích hoạt
                 </Label>
               </div>
@@ -268,8 +272,10 @@ export default function VoicesAdmin() {
               </TableRow>
             ) : (
               voices.map((voice) => (
-                <TableRow key={voice.id}>
-                  <TableCell className="font-mono text-xs">{voice.voice_id}</TableCell>
+                <TableRow key={voice.voice_uuid}>
+                  <TableCell className="font-mono text-xs">
+                    {voice.voice_code}
+                  </TableCell>
                   <TableCell>{getEngineDisplay(voice.engine_id)}</TableCell>
                   <TableCell>
                     <Badge variant={voice.is_active ? 'default' : 'secondary'}>
@@ -288,7 +294,7 @@ export default function VoicesAdmin() {
                       variant="ghost"
                       size="icon"
                       className="text-destructive"
-                      onClick={() => handleDeleteVoice(voice.id)}
+                      onClick={() => handleDeleteVoice(voice.voice_uuid)}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>

@@ -48,7 +48,7 @@ interface Message {
   isStreaming?: boolean;
   status?: string;
   sources?: any[];
-  voice_id?: string | null;
+  persona_id?: string | null;
   reasoning_steps?: { content: string; step_order: number }[];
   pending_confirmation?: boolean;
 }
@@ -216,11 +216,9 @@ function ChatContent() {
     );
   };
 
-  // Helper to get avatar for a specific voice_id
-  const getPersonaAvatar = (voiceId?: string | null) => {
-    if (!voiceId) return undefined;
-    // Look in the loaded personas list
-    const persona = personas.find((p) => p.voice_id === voiceId);
+  const getPersonaAvatar = (personaId?: string | null) => {
+    if (!personaId) return undefined;
+    const persona = personas.find((p) => p.id === personaId);
     return persona?.avatar_url;
   };
 
@@ -273,7 +271,7 @@ function ChatContent() {
         return {
           role: m.role === 'human' ? 'user' : 'assistant',
           content: m.content,
-          voice_id: m.voice_id,
+          persona_id: m.persona_id,
           reasoning_steps: m.reasoning_steps,
           sources: m.sources,
           pending_confirmation: !!(hasPendingFlag || inferPending),
@@ -339,7 +337,7 @@ function ChatContent() {
 
       const trimmedContent = content.trim();
       const messageRole = role === 'agent' ? 'assistant' : 'user';
-      const voiceId = role === 'agent' ? selectedPersona?.voice_id : null;
+      const messagePersonaId = role === 'agent' ? selectedPersona?.id : null;
 
       setMessages((prev) => {
         const lastIdx = prev.length - 1;
@@ -383,7 +381,7 @@ function ChatContent() {
             ...lastMsg,
             content: newContent,
             isStreaming: !isFinal,
-            voice_id: voiceId,
+            persona_id: messagePersonaId,
             sources: sources || lastMsg.sources,
             pending_confirmation:
               pending_confirmation !== undefined
@@ -400,7 +398,7 @@ function ChatContent() {
             role: messageRole,
             content: trimmedContent,
             isStreaming: !isFinal,
-            voice_id: voiceId,
+            persona_id: messagePersonaId,
             reasoning_steps: [],
             sources: sources,
             pending_confirmation: pending_confirmation || false,
@@ -501,7 +499,7 @@ function ChatContent() {
         role: 'assistant',
         content: '',
         isStreaming: true,
-        voice_id: null,
+        persona_id: null,
         reasoning_steps: [],
       };
       setMessages((prev) => [...prev, assistantMessage]);
@@ -875,13 +873,13 @@ function ChatContent() {
                       avatar={
                         msg.role === 'user'
                           ? user?.avatar
-                          : getPersonaAvatar(msg.voice_id) ||
+                          : getPersonaAvatar(msg.persona_id) ||
                             selectedPersona?.avatar_url
                       }
                       userName={user?.name || 'Người dùng'}
                       isStreaming={msg.isStreaming}
                       sources={msg.sources}
-                      voice_id={msg.voice_id}
+                      persona_id={msg.persona_id}
                       pending_confirmation={
                         msg.pending_confirmation && idx === messages.length - 1
                       }
@@ -905,7 +903,7 @@ function ChatContent() {
               }
               isMessageSending={isMessageSending}
               chatId={activeChatId}
-              voiceId={selectedPersona?.voice_id}
+              personaId={selectedPersona?.id}
               useReasoning={useReasoning}
               onChatCreated={handleChatCreated}
               onVoiceMessage={handleVoiceMessage}
