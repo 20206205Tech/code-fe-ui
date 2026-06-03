@@ -152,4 +152,60 @@ export const personaService = {
       }
     );
   },
+
+  // ENGINES ADMIN CRUD
+  getEnginesAdmin: (): Promise<TTSEngine[]> => {
+    return apiHelper.get<TTSEngine[]>(`/${CODE_PERSONA_SERVICE_NAME}/engines`);
+  },
+  createEngine: (data: {
+    code: string;
+    name: string;
+    is_active: boolean;
+  }): Promise<TTSEngine> => {
+    return apiHelper.post<TTSEngine>(
+      `/${CODE_PERSONA_SERVICE_NAME}/engines`,
+      data
+    );
+  },
+  updateEngine: (
+    id: string,
+    data: Partial<{ code: string; name: string; is_active: boolean }>
+  ): Promise<TTSEngine> => {
+    return apiHelper.put<TTSEngine>(
+      `/${CODE_PERSONA_SERVICE_NAME}/engines/${id}`,
+      data
+    );
+  },
+  deleteEngine: (id: string): Promise<void> => {
+    return apiHelper.delete<void>(`/${CODE_PERSONA_SERVICE_NAME}/engines/${id}`);
+  },
+
+  // VOICES ADMIN CRUD
+  getVoicesAdmin: (engine_code?: string): Promise<TTSVoice[]> => {
+    return apiHelper.get<TTSVoice[]>(`/${CODE_PERSONA_SERVICE_NAME}/voices`, {
+      params: { engine_code },
+    });
+  },
+  createVoice: (data: {
+    voice_id: string;
+    engine_id: string;
+    is_active: boolean;
+  }): Promise<TTSVoice> => {
+    return apiHelper.post<TTSVoice>(
+      `/${CODE_PERSONA_SERVICE_NAME}/voices`,
+      data
+    );
+  },
+  updateVoice: (
+    id: string,
+    data: Partial<{ voice_id: string; engine_id: string; is_active: boolean }>
+  ): Promise<TTSVoice> => {
+    return apiHelper.put<TTSVoice>(
+      `/${CODE_PERSONA_SERVICE_NAME}/voices/${id}`,
+      data
+    );
+  },
+  deleteVoice: (id: string): Promise<void> => {
+    return apiHelper.delete<void>(`/${CODE_PERSONA_SERVICE_NAME}/voices/${id}`);
+  },
 };

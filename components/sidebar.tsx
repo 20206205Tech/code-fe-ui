@@ -15,6 +15,7 @@ import {
   Settings,
   Sparkles,
   Trash2,
+  Volume2,
   User,
   Workflow,
 } from 'lucide-react';
@@ -101,7 +102,8 @@ export function Sidebar() {
     await logout();
   };
 
-  const handleNewChat = async () => {    setIsStartingChat(true);
+  const handleNewChat = async () => {
+    setIsStartingChat(true);
     try {
       const session = await conversationService.startChat();
       setIsOpen(false);
@@ -221,7 +223,9 @@ export function Sidebar() {
                         {session.title || 'Cuộc trò chuyện mới'}
                       </p>
                       <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
-                        {new Date(session.updated_at).toLocaleDateString('vi-VN')}
+                        {new Date(session.updated_at).toLocaleDateString(
+                          'vi-VN'
+                        )}
                       </p>
                     </button>
                     <button
@@ -306,6 +310,26 @@ export function Sidebar() {
                 </Button>
               </Link>
 
+              <Link href="/admin/engines" onClick={() => setIsOpen(false)}>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  <Settings size={18} className="mr-2" />
+                  Quản lý Engine
+                </Button>
+              </Link>
+
+              <Link href="/admin/voices" onClick={() => setIsOpen(false)}>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  <Volume2 size={18} className="mr-2" />
+                  Quản lý Voice
+                </Button>
+              </Link>
+
               <Link
                 href="/admin/data-pipeline"
                 onClick={() => setIsOpen(false)}
@@ -324,12 +348,17 @@ export function Sidebar() {
       </aside>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={() => setDeleteTarget(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Xóa cuộc trò chuyện?</AlertDialogTitle>
             <AlertDialogDescription>
-              Cuộc trò chuyện &quot;{deleteTarget?.title || 'Cuộc trò chuyện mới'}&quot; sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.
+              Cuộc trò chuyện &quot;
+              {deleteTarget?.title || 'Cuộc trò chuyện mới'}&quot; sẽ bị xóa
+              vĩnh viễn. Hành động này không thể hoàn tác.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

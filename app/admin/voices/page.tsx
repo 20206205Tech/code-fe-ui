@@ -1,12 +1,12 @@
 'use client';
 
-import PlansAdmin from '@/components/payment/PlansAdmin';
+import VoicesAdmin from '@/components/admin/VoicesAdmin';
 import { Sidebar } from '@/components/sidebar';
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
 import { Suspense, useEffect } from 'react';
 
-export default function AdminPlansPage() {
+export default function AdminVoicesPage() {
   const router = useRouter();
   const { user, isLoading, isAuthenticated } = useAuth();
   const isAdmin = user?.role === 'admin';
@@ -41,11 +41,10 @@ export default function AdminPlansPage() {
       <div className="flex-1 flex flex-col md:ml-0 overflow-hidden">
         <main className="flex-1 overflow-y-auto pt-4 p-4 md:p-8">
           <div className="max-w-6xl mx-auto">
-            <PlansAdmin />
+            <VoicesAdmin />
           </div>
         </main>
       </div>
     </div>
   );
 }
-

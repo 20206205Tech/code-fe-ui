@@ -66,7 +66,9 @@ export default function MfaPage() {
           verifyData.expires_in
         );
         toast.success('Xác thực MFA thành công');
-        router.push('/chat');
+        const nextUrl =
+          new URLSearchParams(window.location.search).get('next') || '/chat';
+        router.push(nextUrl);
       } catch (error: any) {
         toast.error('Mã xác thực MFA không chính xác');
       } finally {
@@ -230,7 +232,10 @@ export default function MfaPage() {
           // Redirect to chat only if already aal2 AND has active factors
           const currentAAL = getAALFromToken(tokens.access_token);
           if (currentAAL === 'aal2' && factors.active.length > 0) {
-            router.push('/chat');
+            const nextUrl =
+              new URLSearchParams(window.location.search).get('next') ||
+              '/chat';
+            router.push(nextUrl);
             return;
           }
 
