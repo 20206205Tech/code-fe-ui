@@ -5,6 +5,7 @@ export interface Persona {
   id: string;
   name: string;
   gender?: string;
+  tts_engine?: string;
   voice_id: string;
   description?: string;
   avatar_url?: string;
@@ -18,6 +19,7 @@ export interface Persona {
 export interface CreatePersonaRequestDto {
   name: string;
   gender?: string;
+  tts_engine?: string;
   voice_id: string;
   description?: string;
   avatar_url?: string;
@@ -29,6 +31,7 @@ export interface CreatePersonaRequestDto {
 export interface UpdatePersonaRequestDto {
   name?: string;
   gender?: string;
+  tts_engine?: string;
   voice_id?: string;
   description?: string;
   avatar_url?: string;
@@ -50,6 +53,20 @@ export interface PaginatedPersona {
   page: number;
   size: number;
   total_pages: number;
+}
+
+export interface TTSEngine {
+  id: string;
+  code: string;
+  name: string;
+  is_active: boolean;
+}
+
+export interface TTSVoice {
+  id: string;
+  voice_id: string;
+  engine_id: string;
+  is_active: boolean;
 }
 
 export const personaService = {
@@ -117,6 +134,21 @@ export const personaService = {
       data,
       {
         responseType: 'blob',
+      }
+    );
+  },
+
+  getEngines: (): Promise<TTSEngine[]> => {
+    return apiHelper.get<TTSEngine[]>(
+      `/${CODE_PERSONA_SERVICE_NAME}/persona/engines`
+    );
+  },
+
+  getVoices: (engine_code?: string): Promise<TTSVoice[]> => {
+    return apiHelper.get<TTSVoice[]>(
+      `/${CODE_PERSONA_SERVICE_NAME}/persona/voices`,
+      {
+        params: { engine_code },
       }
     );
   },
