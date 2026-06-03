@@ -10,11 +10,14 @@ import {
   Upload,
   Check,
   X,
+  Volume2,
+  Square,
 } from 'lucide-react';
 import {
   Persona,
   CreatePersonaRequestDto,
   UpdatePersonaRequestDto,
+  AdminAudioGenerateRequestDto,
   personaService,
 } from '@/services/persona.service';
 import { Button } from '@/components/ui/button';
@@ -39,7 +42,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 
@@ -49,8 +51,15 @@ export default function PersonaAdmin() {
   const [isOpeningDialog, setIsOpeningDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [isUploadingAudio, setIsUploadingAudio] = useState(false);
   const [editingPersona, setEditingPersona] = useState<Persona | null>(null);
+
+  // Voice preview states
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [audioInstance, setAudioInstance] = useState<HTMLAudioElement | null>(
+    null
+  );
+  const [isPlayingPreview, setIsPlayingPreview] = useState(false);
+  const [isPlayingSaved, setIsPlayingSaved] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState<CreatePersonaRequestDto>({
@@ -125,20 +134,114 @@ export default function PersonaAdmin() {
     }
   };
 
-  const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const stopAudio = () => {
+    if (audioInstance) {
+      audioInstance.pause();
+      if (audioInstance.src && audioInstance.src.startsWith('blob:')) {
+        URL.revokeObjectURL(audioInstance.src);
+      }
+      audioInstance.src = '';
+      setAudioInstance(null);
+    }
+    setIsPlayingPreview(false);
+    setIsPlayingSaved(false);
+  };
+
+  useEffect(() => {
+    if (!isOpeningDialog) {
+      stopAudio();
+    }
+  }, [isOpeningDialog]);
+
+  useEffect(() => {
+    return () => {
+      if (audioInstance) {
+        audioInstance.pause();
+      }
+    };
+  }, [audioInstance]);
+
+  const handlePlayPreview = async () => {
+    if (isPlayingPreview) {
+      stopAudio();
+      return;
+    }
+
+    stopAudio();
+
+    if (!formData.greeting_text) {
+      toast.error('Vui lòng nhập câu chào để nghe thử');
+      return;
+    }
 
     try {
-      setIsUploadingAudio(true);
-      const url = await personaService.uploadAudio(file);
-      setFormData((prev) => ({ ...prev, greeting_audio_url: url }));
-      toast.success('Tải âm thanh giới thiệu thành công');
+      setIsPreviewLoading(true);
+      const blob = await personaService.generateAdminAudioPreview({
+        text: formData.greeting_text,
+        voice_id: formData.voice_id || undefined,
+        speed: 1.0,
+      });
+
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+
+      audio.onended = () => {
+        setIsPlayingPreview(false);
+        setAudioInstance(null);
+        URL.revokeObjectURL(url);
+      };
+
+      audio.onerror = () => {
+        setIsPlayingPreview(false);
+        setAudioInstance(null);
+        URL.revokeObjectURL(url);
+        toast.error('Lỗi khi phát âm thanh nghe thử');
+      };
+
+      setAudioInstance(audio);
+      setIsPlayingPreview(true);
+      audio.play();
     } catch (error) {
-      console.error('Audio upload failed:', error);
-      toast.error('Không thể tải âm thanh lên');
+      console.error('Failed to play preview:', error);
+      toast.error('Không thể tạo file nghe thử');
     } finally {
-      setIsUploadingAudio(false);
+      setIsPreviewLoading(false);
+    }
+  };
+
+  const handlePlaySavedAudio = () => {
+    if (isPlayingSaved) {
+      stopAudio();
+      return;
+    }
+
+    stopAudio();
+
+    if (!formData.greeting_audio_url) {
+      toast.error('Không có audio đã lưu');
+      return;
+    }
+
+    try {
+      const audio = new Audio(formData.greeting_audio_url);
+
+      audio.onended = () => {
+        setIsPlayingSaved(false);
+        setAudioInstance(null);
+      };
+
+      audio.onerror = () => {
+        setIsPlayingSaved(false);
+        setAudioInstance(null);
+        toast.error('Lỗi khi phát âm thanh đã lưu');
+      };
+
+      setAudioInstance(audio);
+      setIsPlayingSaved(true);
+      audio.play();
+    } catch (error) {
+      console.error('Failed to play saved audio:', error);
+      toast.error('Không thể phát âm thanh đã lưu');
     }
   };
 
@@ -194,7 +297,7 @@ export default function PersonaAdmin() {
         <div>
           <h2 className="text-2xl font-bold">Quản lý nhân vật</h2>
           <p className="text-muted-foreground">
-            Quản lý các nhân vật (Persona) cho hệ thống
+            Quản lý các nhân vật cho hệ thống
           </p>
         </div>
 
@@ -272,58 +375,65 @@ export default function PersonaAdmin() {
 
               <div className="grid gap-2">
                 <Label htmlFor="description">Mô tả</Label>
-                <Textarea
+                <Input
                   id="description"
                   value={formData.description}
                   onChange={(e) =>
                     setFormData({ ...formData, description: e.target.value })
                   }
                   placeholder="Mô tả về tính cách hoặc vai trò của nhân vật"
-                  rows={3}
                 />
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="greeting_text">Câu chào (Text)</Label>
-                <Input
-                  id="greeting_text"
-                  value={formData.greeting_text}
-                  onChange={(e) =>
-                    setFormData({ ...formData, greeting_text: e.target.value })
-                  }
-                  placeholder="VD: Xin chào, tôi có thể giúp gì cho bạn?"
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="audio-upload">Audio giới thiệu (.mp3)</Label>
-                <div className="flex gap-2">
+                <Label htmlFor="greeting_text">Câu chào </Label>
+                <div className="space-y-2">
                   <Input
-                    id="audio-upload"
-                    type="file"
-                    accept="audio/*"
-                    onChange={handleAudioUpload}
-                    disabled={isUploadingAudio}
-                    className="flex-1"
+                    id="greeting_text"
+                    value={formData.greeting_text}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        greeting_text: e.target.value,
+                      })
+                    }
+                    placeholder="VD: Xin chào, tôi có thể giúp gì cho bạn?"
                   />
-                  {formData.greeting_audio_url && (
+                  <div className="flex gap-2">
                     <Button
                       type="button"
                       variant="outline"
-                      size="icon"
-                      onClick={() =>
-                        new Audio(formData.greeting_audio_url).play()
-                      }
+                      size="sm"
+                      className="flex-1 text-xs"
+                      onClick={handlePlayPreview}
+                      disabled={isPreviewLoading || !formData.greeting_text}
                     >
-                      <Upload className="w-4 h-4 rotate-180" />
+                      {isPreviewLoading ? (
+                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                      ) : isPlayingPreview ? (
+                        <Square className="w-3 h-3 mr-1 fill-current" />
+                      ) : (
+                        <Volume2 className="w-3 h-3 mr-1" />
+                      )}
+                      {isPlayingPreview ? 'Dừng nghe thử' : 'Nghe thử (TTS)'}
                     </Button>
-                  )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 text-xs"
+                      onClick={handlePlaySavedAudio}
+                      disabled={!formData.greeting_audio_url}
+                    >
+                      {isPlayingSaved ? (
+                        <Square className="w-3 h-3 mr-1 fill-current" />
+                      ) : (
+                        <Volume2 className="w-3 h-3 mr-1" />
+                      )}
+                      Phát audio đã lưu
+                    </Button>
+                  </div>
                 </div>
-                {isUploadingAudio && (
-                  <p className="text-xs text-muted-foreground animate-pulse">
-                    Đang tải âm thanh...
-                  </p>
-                )}
               </div>
 
               <div className="flex items-center justify-between">

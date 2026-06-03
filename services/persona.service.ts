@@ -34,6 +34,13 @@ export interface UpdatePersonaRequestDto {
   is_active?: boolean;
 }
 
+export interface AdminAudioGenerateRequestDto {
+  text: string;
+  voice_id?: string;
+  speed?: number;
+  response_format?: string;
+}
+
 export interface PaginatedPersona {
   items: Persona[];
   total: number;
@@ -96,6 +103,18 @@ export const personaService = {
       `/${CODE_PERSONA_SERVICE_NAME}/persona/upload-audio`,
       formData,
       { headers: { 'Content-Type': 'multipart/form-data' } }
+    );
+  },
+
+  generateAdminAudioPreview: (
+    data: AdminAudioGenerateRequestDto
+  ): Promise<Blob> => {
+    return apiHelper.post<Blob>(
+      `/${CODE_PERSONA_SERVICE_NAME}/audio/v1/tts`,
+      data,
+      {
+        responseType: 'blob',
+      }
     );
   },
 };
