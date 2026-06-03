@@ -10,11 +10,14 @@ import {
   Upload,
   Check,
   X,
+  Volume2,
+  Square,
 } from 'lucide-react';
 import {
   Persona,
   CreatePersonaRequestDto,
   UpdatePersonaRequestDto,
+  AdminAudioGenerateRequestDto,
   personaService,
 } from '@/services/persona.service';
 import { Button } from '@/components/ui/button';
@@ -39,7 +42,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 
@@ -49,12 +51,20 @@ export default function PersonaAdmin() {
   const [isOpeningDialog, setIsOpeningDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [isUploadingAudio, setIsUploadingAudio] = useState(false);
   const [editingPersona, setEditingPersona] = useState<Persona | null>(null);
+
+  // Voice preview states
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [audioInstance, setAudioInstance] = useState<HTMLAudioElement | null>(
+    null
+  );
+  const [isPlayingPreview, setIsPlayingPreview] = useState(false);
+  const [isPlayingSaved, setIsPlayingSaved] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState<CreatePersonaRequestDto>({
     name: '',
+    gender: '',
     voice_id: '',
     description: '',
     avatar_url: '',
@@ -84,6 +94,7 @@ export default function PersonaAdmin() {
     setEditingPersona(null);
     setFormData({
       name: '',
+      gender: '',
       voice_id: '',
       description: '',
       avatar_url: '',
@@ -98,6 +109,7 @@ export default function PersonaAdmin() {
     setEditingPersona(persona);
     setFormData({
       name: persona.name,
+      gender: persona.gender || '',
       voice_id: persona.voice_id,
       description: persona.description || '',
       avatar_url: persona.avatar_url || '',
@@ -125,20 +137,114 @@ export default function PersonaAdmin() {
     }
   };
 
-  const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const stopAudio = () => {
+    if (audioInstance) {
+      audioInstance.pause();
+      if (audioInstance.src && audioInstance.src.startsWith('blob:')) {
+        URL.revokeObjectURL(audioInstance.src);
+      }
+      audioInstance.src = '';
+      setAudioInstance(null);
+    }
+    setIsPlayingPreview(false);
+    setIsPlayingSaved(false);
+  };
+
+  useEffect(() => {
+    if (!isOpeningDialog) {
+      stopAudio();
+    }
+  }, [isOpeningDialog]);
+
+  useEffect(() => {
+    return () => {
+      if (audioInstance) {
+        audioInstance.pause();
+      }
+    };
+  }, [audioInstance]);
+
+  const handlePlayPreview = async () => {
+    if (isPlayingPreview) {
+      stopAudio();
+      return;
+    }
+
+    stopAudio();
+
+    if (!formData.greeting_text) {
+      toast.error('Vui lòng nhập câu chào để nghe thử');
+      return;
+    }
 
     try {
-      setIsUploadingAudio(true);
-      const url = await personaService.uploadAudio(file);
-      setFormData((prev) => ({ ...prev, greeting_audio_url: url }));
-      toast.success('Tải âm thanh giới thiệu thành công');
+      setIsPreviewLoading(true);
+      const blob = await personaService.generateAdminAudioPreview({
+        text: formData.greeting_text,
+        voice_id: formData.voice_id || undefined,
+        speed: 1.0,
+      });
+
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+
+      audio.onended = () => {
+        setIsPlayingPreview(false);
+        setAudioInstance(null);
+        URL.revokeObjectURL(url);
+      };
+
+      audio.onerror = () => {
+        setIsPlayingPreview(false);
+        setAudioInstance(null);
+        URL.revokeObjectURL(url);
+        toast.error('Lỗi khi phát âm thanh nghe thử');
+      };
+
+      setAudioInstance(audio);
+      setIsPlayingPreview(true);
+      audio.play();
     } catch (error) {
-      console.error('Audio upload failed:', error);
-      toast.error('Không thể tải âm thanh lên');
+      console.error('Failed to play preview:', error);
+      toast.error('Không thể tạo file nghe thử');
     } finally {
-      setIsUploadingAudio(false);
+      setIsPreviewLoading(false);
+    }
+  };
+
+  const handlePlaySavedAudio = () => {
+    if (isPlayingSaved) {
+      stopAudio();
+      return;
+    }
+
+    stopAudio();
+
+    if (!formData.greeting_audio_url) {
+      toast.error('Không có audio đã lưu');
+      return;
+    }
+
+    try {
+      const audio = new Audio(formData.greeting_audio_url);
+
+      audio.onended = () => {
+        setIsPlayingSaved(false);
+        setAudioInstance(null);
+      };
+
+      audio.onerror = () => {
+        setIsPlayingSaved(false);
+        setAudioInstance(null);
+        toast.error('Lỗi khi phát âm thanh đã lưu');
+      };
+
+      setAudioInstance(audio);
+      setIsPlayingSaved(true);
+      audio.play();
+    } catch (error) {
+      console.error('Failed to play saved audio:', error);
+      toast.error('Không thể phát âm thanh đã lưu');
     }
   };
 
@@ -194,7 +300,7 @@ export default function PersonaAdmin() {
         <div>
           <h2 className="text-2xl font-bold">Quản lý nhân vật</h2>
           <p className="text-muted-foreground">
-            Quản lý các nhân vật (Persona) cho hệ thống
+            Quản lý các nhân vật cho hệ thống
           </p>
         </div>
 
@@ -258,6 +364,24 @@ export default function PersonaAdmin() {
               </div>
 
               <div className="grid gap-2">
+                <Label htmlFor="gender">Giới tính</Label>
+                <select
+                  id="gender"
+                  value={formData.gender || ''}
+                  onChange={(e) =>
+                    setFormData({ ...formData, gender: e.target.value })
+                  }
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  required
+                >
+                  <option value="" disabled>Chọn giới tính</option>
+                  <option value="Nam">Nam</option>
+                  <option value="Nữ">Nữ</option>
+                  <option value="Khác">Khác</option>
+                </select>
+              </div>
+
+              <div className="grid gap-2">
                 <Label htmlFor="voice_id">Voice ID </Label>
                 <Input
                   id="voice_id"
@@ -272,58 +396,65 @@ export default function PersonaAdmin() {
 
               <div className="grid gap-2">
                 <Label htmlFor="description">Mô tả</Label>
-                <Textarea
+                <Input
                   id="description"
                   value={formData.description}
                   onChange={(e) =>
                     setFormData({ ...formData, description: e.target.value })
                   }
                   placeholder="Mô tả về tính cách hoặc vai trò của nhân vật"
-                  rows={3}
                 />
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="greeting_text">Câu chào (Text)</Label>
-                <Input
-                  id="greeting_text"
-                  value={formData.greeting_text}
-                  onChange={(e) =>
-                    setFormData({ ...formData, greeting_text: e.target.value })
-                  }
-                  placeholder="VD: Xin chào, tôi có thể giúp gì cho bạn?"
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="audio-upload">Audio giới thiệu (.mp3)</Label>
-                <div className="flex gap-2">
+                <Label htmlFor="greeting_text">Câu chào </Label>
+                <div className="space-y-2">
                   <Input
-                    id="audio-upload"
-                    type="file"
-                    accept="audio/*"
-                    onChange={handleAudioUpload}
-                    disabled={isUploadingAudio}
-                    className="flex-1"
+                    id="greeting_text"
+                    value={formData.greeting_text}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        greeting_text: e.target.value,
+                      })
+                    }
+                    placeholder="VD: Xin chào, tôi có thể giúp gì cho bạn?"
                   />
-                  {formData.greeting_audio_url && (
+                  <div className="flex gap-2">
                     <Button
                       type="button"
                       variant="outline"
-                      size="icon"
-                      onClick={() =>
-                        new Audio(formData.greeting_audio_url).play()
-                      }
+                      size="sm"
+                      className="flex-1 text-xs"
+                      onClick={handlePlayPreview}
+                      disabled={isPreviewLoading || !formData.greeting_text}
                     >
-                      <Upload className="w-4 h-4 rotate-180" />
+                      {isPreviewLoading ? (
+                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                      ) : isPlayingPreview ? (
+                        <Square className="w-3 h-3 mr-1 fill-current" />
+                      ) : (
+                        <Volume2 className="w-3 h-3 mr-1" />
+                      )}
+                      {isPlayingPreview ? 'Dừng nghe thử' : 'Nghe thử (TTS)'}
                     </Button>
-                  )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 text-xs"
+                      onClick={handlePlaySavedAudio}
+                      disabled={!formData.greeting_audio_url}
+                    >
+                      {isPlayingSaved ? (
+                        <Square className="w-3 h-3 mr-1 fill-current" />
+                      ) : (
+                        <Volume2 className="w-3 h-3 mr-1" />
+                      )}
+                      Phát audio đã lưu
+                    </Button>
+                  </div>
                 </div>
-                {isUploadingAudio && (
-                  <p className="text-xs text-muted-foreground animate-pulse">
-                    Đang tải âm thanh...
-                  </p>
-                )}
               </div>
 
               <div className="flex items-center justify-between">
@@ -362,6 +493,7 @@ export default function PersonaAdmin() {
             <TableRow>
               <TableHead className="w-[80px]">Avatar</TableHead>
               <TableHead>Tên nhân vật</TableHead>
+              <TableHead>Giới tính</TableHead>
               <TableHead>Voice ID</TableHead>
               <TableHead>Trạng thái</TableHead>
               <TableHead className="text-right">Thao tác</TableHead>
@@ -371,7 +503,7 @@ export default function PersonaAdmin() {
             {personas.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={6}
                   className="text-center py-8 text-muted-foreground"
                 >
                   Chưa có nhân vật nào được tạo.
@@ -393,6 +525,9 @@ export default function PersonaAdmin() {
                     <div className="text-xs text-muted-foreground truncate max-w-[200px]">
                       {persona.description || 'Không có mô tả'}
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{persona.gender || 'Chưa chọn'}</Badge>
                   </TableCell>
                   <TableCell className="font-mono text-xs">
                     {persona.voice_id}

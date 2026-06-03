@@ -4,6 +4,7 @@ import { CODE_PERSONA_SERVICE_NAME } from '@/config/api.constants';
 export interface Persona {
   id: string;
   name: string;
+  gender?: string;
   voice_id: string;
   description?: string;
   avatar_url?: string;
@@ -16,6 +17,7 @@ export interface Persona {
 
 export interface CreatePersonaRequestDto {
   name: string;
+  gender?: string;
   voice_id: string;
   description?: string;
   avatar_url?: string;
@@ -26,12 +28,20 @@ export interface CreatePersonaRequestDto {
 
 export interface UpdatePersonaRequestDto {
   name?: string;
+  gender?: string;
   voice_id?: string;
   description?: string;
   avatar_url?: string;
   greeting_audio_url?: string;
   greeting_text?: string;
   is_active?: boolean;
+}
+
+export interface AdminAudioGenerateRequestDto {
+  text: string;
+  voice_id?: string;
+  speed?: number;
+  response_format?: string;
 }
 
 export interface PaginatedPersona {
@@ -96,6 +106,18 @@ export const personaService = {
       `/${CODE_PERSONA_SERVICE_NAME}/persona/upload-audio`,
       formData,
       { headers: { 'Content-Type': 'multipart/form-data' } }
+    );
+  },
+
+  generateAdminAudioPreview: (
+    data: AdminAudioGenerateRequestDto
+  ): Promise<Blob> => {
+    return apiHelper.post<Blob>(
+      `/${CODE_PERSONA_SERVICE_NAME}/audio/v1/tts`,
+      data,
+      {
+        responseType: 'blob',
+      }
     );
   },
 };
