@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { TOKEN_STORAGE_KEY } from './config/app.config';
 import { getUserRoleFromToken } from './lib/token-helper';
 
-const publicRoutes = ['/login', '/auth/callback'];
+const publicRoutes = ['/', '/login', '/auth/callback'];
 
 // Các route cần quyền admin. Chỉ cần khai báo tiền tố '/admin'
 // vì logic .startsWith() sẽ bao quát tất cả các trang con như /admin/data-pipeline.
