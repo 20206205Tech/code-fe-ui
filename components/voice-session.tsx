@@ -528,7 +528,7 @@ export const VoiceSession = forwardRef<VoiceSessionHandle, VoiceSessionProps>(
       );
       if (!isVip) {
         toast.info(
-          'Vui lòng nâng cấp gói cước để sử dụng tính năng hội thoại thoại.'
+          'Vui lòng nâng cấp gói cước để sử dụng tính năng hội thoại.'
         );
         return;
       }
