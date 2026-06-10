@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import React, {
   createContext,
   useCallback,
@@ -7,25 +8,25 @@ import React, {
   useEffect,
   useState,
 } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   TOKEN_CHECK_INTERVAL,
   TOKEN_REFRESH_THRESHOLD,
   TOKEN_STORAGE_KEY,
-  USER_STORAGE_KEY,
   USER_SETTINGS_STORAGE_KEY,
+  USER_STORAGE_KEY,
 } from '../config/app.config';
-import { authService } from '../services/auth.service';
 import { authMfaService } from '../services/auth-mfa.service';
-import { useSettings } from './settings-context';
-import { cookieHelper } from './cookie-helper';
+import { authProfileService } from '../services/auth-profile.service';
+import type { AuthToken, User } from '../services/auth-user.service';
+import { authService } from '../services/auth-user.service';
 import { paymentService, Subscription } from '../services/payment.service';
-import type { AuthToken, User } from '../services/auth.service';
+import { cookieHelper } from './cookie-helper';
+import { useSettings } from './settings-context';
 
 import {
   decodeJwtPayload,
-  getUserRoleFromToken,
   getAALFromToken,
+  getUserRoleFromToken,
 } from './token-helper';
 
 interface AuthContextType {
@@ -141,7 +142,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const userId = payload.sub;
         const userRole = payload.app_metadata?.role || 'user';
 
-        const dbProfile = await authService.getProfile(userId, access_token);
+        const dbProfile = await authProfileService.getProfile(
+          userId,
+          access_token
+        );
 
         const authUser: User = {
           id: userId,
@@ -238,7 +242,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Xử lý upload ảnh nếu có
       if (userData.avatarFile) {
-        const publicUrl = await authService.uploadAvatar(
+        const publicUrl = await authProfileService.uploadAvatar(
           user.id,
           tokens.access_token,
           userData.avatarFile
@@ -257,7 +261,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Gửi PATCH lên DB profiles
-      const newProfile = await authService.updateProfile(
+      const newProfile = await authProfileService.updateProfile(
         user.id,
         tokens.access_token,
         updatedData

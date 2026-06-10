@@ -1,27 +1,6 @@
 'use client';
 
 import { Sidebar } from '@/components/sidebar';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/lib/auth-context';
-import { authService } from '@/services/auth.service';
-import { authMfaService } from '@/services/auth-mfa.service';
-import {
-  ArrowLeft,
-  Upload,
-  KeyRound,
-  Eye,
-  EyeOff,
-  Shield,
-  Smartphone,
-  Trash2,
-  AlertTriangle,
-  Loader2,
-} from 'lucide-react';
-import Link from 'next/link';
-import { useEffect, useRef, useState, Suspense, useCallback } from 'react';
-import { toast as sonnerToast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +12,27 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/lib/auth-context';
+import { authMfaService } from '@/services/auth-mfa.service';
+import { authService } from '@/services/auth-user.service';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Loader2,
+  Shield,
+  Smartphone,
+  Trash2,
+  Upload,
+} from 'lucide-react';
+import Link from 'next/link';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { toast as sonnerToast } from 'sonner';
 
 export default function ProfilePage() {
   const { user, updateUser, tokens } = useAuth();

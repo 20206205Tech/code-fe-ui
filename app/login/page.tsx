@@ -1,13 +1,13 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useAuth } from '@/lib/auth-context';
+import { getAALFromToken } from '@/lib/token-helper';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { authService } from '../../services/auth.service';
 import { toast } from 'sonner';
-import { Input } from '@/components/ui/input';
-import { getAALFromToken } from '@/lib/token-helper';
+import { authService } from '../../services/auth-user.service';
 
 export default function LoginPage() {
   const router = useRouter();
