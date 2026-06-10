@@ -39,6 +39,7 @@ export default function ProfilePage() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState(user?.name || '');
+  const [avatarUrl, setAvatarUrl] = useState(user?.avatar || '');
   const [isLoading, setIsLoading] = useState(false);
 
   // States for change password
@@ -68,6 +69,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (user?.name) setName(user.name);
+    if (user?.avatar) setAvatarUrl(user.avatar);
   }, [user]);
 
   useEffect(() => {
@@ -92,7 +94,11 @@ export default function ProfilePage() {
     }
   };
 
-  const handleUpdate = async (data: { name?: string; avatarFile?: File }) => {
+  const handleUpdate = async (data: {
+    name?: string;
+    avatarFile?: File;
+    avatar?: string;
+  }) => {
     setIsLoading(true);
     try {
       await updateUser(data);
@@ -192,9 +198,9 @@ export default function ProfilePage() {
             {/* Avatar Section */}
             <div className="flex flex-col items-center gap-4">
               <div className="relative group">
-                {user?.avatar ? (
+                {avatarUrl ? (
                   <img
-                    src={user.avatar}
+                    src={avatarUrl}
                     className="w-28 h-28 rounded-full object-cover border-4 border-slate-100 shadow-sm"
                     alt="avatar"
                   />
@@ -204,6 +210,7 @@ export default function ProfilePage() {
                   </div>
                 )}
                 <button
+                  type="button"
                   onClick={() => fileInputRef.current?.click()}
                   className="absolute bottom-0 right-0 p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 shadow-lg transition-transform active:scale-95"
                 >
@@ -226,7 +233,7 @@ export default function ProfilePage() {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                handleUpdate({ name });
+                handleUpdate({ name, avatar: avatarUrl });
               }}
               className="w-full space-y-4 bg-slate-50 dark:bg-slate-900 p-6 rounded-2xl shadow-sm"
             >
@@ -238,6 +245,18 @@ export default function ProfilePage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Tên của bạn"
+                  className="bg-white dark:bg-slate-800"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-slate-500 px-1">
+                  Đường dẫn ảnh đại diện (URL)
+                </label>
+                <Input
+                  value={avatarUrl}
+                  onChange={(e) => setAvatarUrl(e.target.value)}
+                  placeholder="https://example.com/avatar.png"
                   className="bg-white dark:bg-slate-800"
                 />
               </div>
@@ -256,7 +275,11 @@ export default function ProfilePage() {
 
               <Button
                 type="submit"
-                disabled={isLoading || name === user?.name || !name.trim()}
+                disabled={
+                  isLoading ||
+                  (name === user?.name && avatarUrl === user?.avatar) ||
+                  !name.trim()
+                }
                 className="w-full bg-blue-600 hover:bg-blue-700 mt-2"
               >
                 {isLoading ? 'Đang xử lý...' : 'Lưu thay đổi'}

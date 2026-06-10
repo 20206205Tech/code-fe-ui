@@ -251,6 +251,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         updatedData.full_name = userData.name;
       }
 
+      // Xử lý avatar URL trực tiếp
+      if (userData.avatar !== undefined) {
+        updatedData.avatar_url = userData.avatar;
+      }
+
       // Gửi PATCH lên DB profiles
       const newProfile = await authService.updateProfile(
         user.id,
