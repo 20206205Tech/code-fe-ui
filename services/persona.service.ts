@@ -75,7 +75,7 @@ export const personaService = {
     voice_uuid?: string
   ): Promise<PaginatedPersona> => {
     return apiHelper.get<PaginatedPersona>(
-      `/${CODE_PERSONA_SERVICE_NAME}/public`,
+      `/${CODE_PERSONA_SERVICE_NAME}/public/personas`,
       {
         params: { page, size, voice_uuid },
       }
@@ -84,13 +84,13 @@ export const personaService = {
 
   getPersonaById: (id: string): Promise<Persona> => {
     return apiHelper.get<Persona>(
-      `/${CODE_PERSONA_SERVICE_NAME}/public/persona/${id}`
+      `/${CODE_PERSONA_SERVICE_NAME}/public/personas/${id}`
     );
   },
 
   createPersona: (data: CreatePersonaRequestDto): Promise<Persona> => {
     return apiHelper.post<Persona>(
-      `/${CODE_PERSONA_SERVICE_NAME}/persona`,
+      `/${CODE_PERSONA_SERVICE_NAME}/personas`,
       data
     );
   },
@@ -100,14 +100,14 @@ export const personaService = {
     data: UpdatePersonaRequestDto
   ): Promise<Persona> => {
     return apiHelper.put<Persona>(
-      `/${CODE_PERSONA_SERVICE_NAME}/persona/${id}`,
+      `/${CODE_PERSONA_SERVICE_NAME}/personas/${id}`,
       data
     );
   },
 
   deletePersona: (id: string): Promise<void> => {
     return apiHelper.delete<void>(
-      `/${CODE_PERSONA_SERVICE_NAME}/persona/${id}`
+      `/${CODE_PERSONA_SERVICE_NAME}/personas/${id}`
     );
   },
 
@@ -115,7 +115,7 @@ export const personaService = {
     const formData = new FormData();
     formData.append('file', file);
     return apiHelper.post<string>(
-      `/${CODE_PERSONA_SERVICE_NAME}/persona/upload-avatar`,
+      `/${CODE_PERSONA_SERVICE_NAME}/personas/upload-avatar`,
       formData,
       { headers: { 'Content-Type': 'multipart/form-data' } }
     );
@@ -125,7 +125,7 @@ export const personaService = {
     const formData = new FormData();
     formData.append('file', file);
     return apiHelper.post<string>(
-      `/${CODE_PERSONA_SERVICE_NAME}/persona/upload-audio`,
+      `/${CODE_PERSONA_SERVICE_NAME}/personas/upload-audio`,
       formData,
       { headers: { 'Content-Type': 'multipart/form-data' } }
     );
@@ -217,7 +217,10 @@ export const personaService = {
       `/${CODE_PERSONA_SERVICE_NAME}/voices/${voice_uuid}`
     );
   },
-  syncElevenLabs: (): Promise<{ synced_count: number; synced_codes: string[] }> => {
+  syncElevenLabs: (): Promise<{
+    synced_count: number;
+    synced_codes: string[];
+  }> => {
     return apiHelper.post<{ synced_count: number; synced_codes: string[] }>(
       `/${CODE_PERSONA_SERVICE_NAME}/voices/sync-elevenlabs`
     );
