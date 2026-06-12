@@ -36,12 +36,13 @@ export default function PlansList() {
   const fetchPlans = async () => {
     try {
       setIsLoading(true);
-      const data = await paymentService.getPlans();
-      setPlans(data.filter((p) => p.isActive));
+      await paymentService.getPlans(0, 10, (data) => {
+        setPlans(data.filter((p) => p.isActive));
+        setIsLoading(false);
+      });
     } catch (error) {
       console.error('Failed to fetch plans:', error);
       toast.error('Không thể tải danh sách gói cước');
-    } finally {
       setIsLoading(false);
     }
   };
@@ -92,7 +93,9 @@ export default function PlansList() {
     <div className="container mx-auto py-4 px-0">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
         {plans.map((plan) => {
-          const features = plan.features?.length ? plan.features : DEFAULT_FEATURES;
+          const features = plan.features?.length
+            ? plan.features
+            : DEFAULT_FEATURES;
 
           return (
             <Card

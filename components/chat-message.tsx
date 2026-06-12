@@ -79,13 +79,12 @@ export function ChatMessage({
 
       const fetchPersona = async () => {
         try {
-          const result = await personaService.getPersonaById(persona_id);
-          const persona = result ?? null;
-
-          if (persona?.avatar_url) {
-            globalPersonaCache[persona_id] = persona.avatar_url;
-            setPersonaAvatar(persona.avatar_url);
-          }
+          await personaService.getPersonaById(persona_id, (persona) => {
+            if (persona?.avatar_url) {
+              globalPersonaCache[persona_id] = persona.avatar_url;
+              setPersonaAvatar(persona.avatar_url);
+            }
+          });
         } catch (error) {
           console.error(
             '[ChatMessage] Fallback error fetching persona avatar:',

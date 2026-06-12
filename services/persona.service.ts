@@ -1,5 +1,6 @@
 import { apiHelper } from '@/lib/api-helper';
 import { CODE_PERSONA_SERVICE_NAME } from '@/config/api.constants';
+import { executeSWR } from '@/lib/swr-helper';
 
 export interface Persona {
   id: string;
@@ -72,19 +73,33 @@ export const personaService = {
   getPersonas: (
     page: number = 1,
     size: number = 10,
-    voice_uuid?: string
+    voice_uuid?: string,
+    onData?: (data: PaginatedPersona) => void
   ): Promise<PaginatedPersona> => {
-    return apiHelper.get<PaginatedPersona>(
-      `/${CODE_PERSONA_SERVICE_NAME}/public/personas`,
-      {
-        params: { page, size, voice_uuid },
-      }
+    return executeSWR<PaginatedPersona>(
+      `swr:personas:${page}:${size}:${voice_uuid || ''}`,
+      () =>
+        apiHelper.get<PaginatedPersona>(
+          `/${CODE_PERSONA_SERVICE_NAME}/public/personas`,
+          {
+            params: { page, size, voice_uuid },
+          }
+        ),
+      onData
     );
   },
 
-  getPersonaById: (id: string): Promise<Persona> => {
-    return apiHelper.get<Persona>(
-      `/${CODE_PERSONA_SERVICE_NAME}/public/personas/${id}`
+  getPersonaById: (
+    id: string,
+    onData?: (data: Persona) => void
+  ): Promise<Persona> => {
+    return executeSWR<Persona>(
+      `swr:persona:${id}`,
+      () =>
+        apiHelper.get<Persona>(
+          `/${CODE_PERSONA_SERVICE_NAME}/public/personas/${id}`
+        ),
+      onData
     );
   },
 
@@ -143,24 +158,43 @@ export const personaService = {
     );
   },
 
-  getEngines: (): Promise<TTSEngine[]> => {
-    return apiHelper.get<TTSEngine[]>(
-      `/${CODE_PERSONA_SERVICE_NAME}/public/engines`
+  getEngines: (onData?: (data: TTSEngine[]) => void): Promise<TTSEngine[]> => {
+    return executeSWR<TTSEngine[]>(
+      'swr:engines',
+      () =>
+        apiHelper.get<TTSEngine[]>(
+          `/${CODE_PERSONA_SERVICE_NAME}/public/engines`
+        ),
+      onData
     );
   },
 
-  getVoices: (engine_code?: string): Promise<TTSVoice[]> => {
-    return apiHelper.get<TTSVoice[]>(
-      `/${CODE_PERSONA_SERVICE_NAME}/public/voices`,
-      {
-        params: { engine_code },
-      }
+  getVoices: (
+    engine_code?: string,
+    onData?: (data: TTSVoice[]) => void
+  ): Promise<TTSVoice[]> => {
+    return executeSWR<TTSVoice[]>(
+      `swr:voices:${engine_code || ''}`,
+      () =>
+        apiHelper.get<TTSVoice[]>(
+          `/${CODE_PERSONA_SERVICE_NAME}/public/voices`,
+          {
+            params: { engine_code },
+          }
+        ),
+      onData
     );
   },
 
   // ENGINES ADMIN CRUD
-  getEnginesAdmin: (): Promise<TTSEngine[]> => {
-    return apiHelper.get<TTSEngine[]>(`/${CODE_PERSONA_SERVICE_NAME}/engines`);
+  getEnginesAdmin: (
+    onData?: (data: TTSEngine[]) => void
+  ): Promise<TTSEngine[]> => {
+    return executeSWR<TTSEngine[]>(
+      'swr:engines_admin',
+      () => apiHelper.get<TTSEngine[]>(`/${CODE_PERSONA_SERVICE_NAME}/engines`),
+      onData
+    );
   },
   createEngine: (data: {
     code: string;
@@ -188,10 +222,18 @@ export const personaService = {
   },
 
   // VOICES ADMIN CRUD
-  getVoicesAdmin: (engine_code?: string): Promise<TTSVoice[]> => {
-    return apiHelper.get<TTSVoice[]>(`/${CODE_PERSONA_SERVICE_NAME}/voices`, {
-      params: { engine_code },
-    });
+  getVoicesAdmin: (
+    engine_code?: string,
+    onData?: (data: TTSVoice[]) => void
+  ): Promise<TTSVoice[]> => {
+    return executeSWR<TTSVoice[]>(
+      `swr:voices_admin:${engine_code || ''}`,
+      () =>
+        apiHelper.get<TTSVoice[]>(`/${CODE_PERSONA_SERVICE_NAME}/voices`, {
+          params: { engine_code },
+        }),
+      onData
+    );
   },
   createVoice: (data: {
     voice_code: string;

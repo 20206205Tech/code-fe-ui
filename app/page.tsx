@@ -103,17 +103,14 @@ export default function Home() {
   const fetchPlans = async () => {
     try {
       setPlansLoading(true);
-      const data = await paymentService.getPlans();
-      const activePlans = data.filter((p) => p.isActive);
-      if (activePlans.length > 0) {
+      await paymentService.getPlans(0, 10, (data) => {
+        const activePlans = data.filter((p) => p.isActive);
         setPlans(activePlans);
-      } else {
-        setPlans([]);
-      }
+        setPlansLoading(false);
+      });
     } catch (error) {
       console.error('Failed to fetch plans on landing page:', error);
       setPlans([]);
-    } finally {
       setPlansLoading(false);
     }
   };
@@ -121,16 +118,17 @@ export default function Home() {
   const fetchPersonas = async () => {
     try {
       setPersonasLoading(true);
-      const res = await personaService.getPersonas(1, 50);
-      if (res && res.items && res.items.length > 0) {
-        setPersonas(res.items.filter((item) => item.is_active));
-      } else {
-        setPersonas([]);
-      }
+      await personaService.getPersonas(1, 50, undefined, (res) => {
+        if (res && res.items && res.items.length > 0) {
+          setPersonas(res.items.filter((item) => item.is_active));
+        } else {
+          setPersonas([]);
+        }
+        setPersonasLoading(false);
+      });
     } catch (error) {
       console.error('Failed to fetch personas on landing page:', error);
       setPersonas([]);
-    } finally {
       setPersonasLoading(false);
     }
   };

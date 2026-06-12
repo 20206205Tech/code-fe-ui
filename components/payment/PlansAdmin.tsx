@@ -64,12 +64,13 @@ export default function PlansAdmin() {
   const fetchPlans = async () => {
     try {
       setIsLoading(true);
-      const data = await paymentService.getPlans(0, 50);
-      setPlans(data);
+      await paymentService.getPlans(0, 50, (data) => {
+        setPlans(data);
+        setIsLoading(false);
+      });
     } catch (error) {
       console.error('Failed to fetch plans:', error);
       toast.error('Không thể tải danh sách gói cước');
-    } finally {
       setIsLoading(false);
     }
   };
@@ -241,7 +242,8 @@ export default function PlansAdmin() {
                       rows={4}
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                      Để trống sẽ dùng danh sách mặc định: {DEFAULT_FEATURES.join(', ')}
+                      Để trống sẽ dùng danh sách mặc định:{' '}
+                      {DEFAULT_FEATURES.join(', ')}
                     </p>
                   </div>
                 </div>
@@ -296,7 +298,9 @@ export default function PlansAdmin() {
                         ))}
                       </ul>
                     ) : (
-                      <span className="text-muted-foreground text-xs">Mặc định</span>
+                      <span className="text-muted-foreground text-xs">
+                        Mặc định
+                      </span>
                     )}
                   </TableCell>
                   <TableCell>

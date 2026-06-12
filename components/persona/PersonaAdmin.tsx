@@ -87,26 +87,25 @@ export default function PersonaAdmin() {
   const fetchPersonas = async () => {
     try {
       setIsLoading(true);
-      const data = await personaService.getPersonas(1, 100);
-      setPersonas(data.items);
+      await personaService.getPersonas(1, 100, undefined, (data) => {
+        setPersonas(data.items);
+        setIsLoading(false);
+      });
     } catch (error) {
       console.error('Failed to fetch personas:', error);
       toast.error('Không thể tải danh sách nhân vật');
-    } finally {
       setIsLoading(false);
     }
   };
 
   const fetchEnginesAndVoices = async () => {
     try {
-      const [enginesData, voicesData] = await Promise.all([
-        // personaService.getEngines(),
-        // personaService.getVoices(),
-        personaService.getEnginesAdmin(),
-        personaService.getVoicesAdmin(),
-      ]);
-      setEngines(enginesData);
-      setVoices(voicesData);
+      await personaService.getEnginesAdmin((enginesData) => {
+        setEngines(enginesData);
+      });
+      await personaService.getVoicesAdmin(undefined, (voicesData) => {
+        setVoices(voicesData);
+      });
     } catch (error) {
       console.error('Failed to fetch engines/voices:', error);
     }

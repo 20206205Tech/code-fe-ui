@@ -77,29 +77,30 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   const syncSettings = async (token: string) => {
     try {
-      const apiSettings = await settingsService.getSettings(token);
-      if (apiSettings && apiSettings.length > 0) {
-        const newSettings: Partial<Settings> = {};
+      await settingsService.getSettings(token, (apiSettings) => {
+        if (apiSettings && apiSettings.length > 0) {
+          const newSettings: Partial<Settings> = {};
 
-        apiSettings.forEach((item) => {
-          if (item.key === SETTING_KEYS.THEME) newSettings.theme = item.value;
-          if (item.key === SETTING_KEYS.SHOW_EXAMPLE_QUESTIONS)
-            newSettings.showExampleQuestions = item.value === 'true';
-          if (item.key === SETTING_KEYS.SELECTED_PERSONA_ID)
-            newSettings.selectedPersonaId = item.value;
-          if (item.key === SETTING_KEYS.AUTO_EXPAND_REASONING)
-            newSettings.autoExpandReasoning = item.value === 'true';
-          if (item.key === SETTING_KEYS.USE_REASONING)
-            newSettings.useReasoning = item.value === 'true';
-        });
+          apiSettings.forEach((item) => {
+            if (item.key === SETTING_KEYS.THEME) newSettings.theme = item.value;
+            if (item.key === SETTING_KEYS.SHOW_EXAMPLE_QUESTIONS)
+              newSettings.showExampleQuestions = item.value === 'true';
+            if (item.key === SETTING_KEYS.SELECTED_PERSONA_ID)
+              newSettings.selectedPersonaId = item.value;
+            if (item.key === SETTING_KEYS.AUTO_EXPAND_REASONING)
+              newSettings.autoExpandReasoning = item.value === 'true';
+            if (item.key === SETTING_KEYS.USE_REASONING)
+              newSettings.useReasoning = item.value === 'true';
+          });
 
-        const updated = { ...settings, ...newSettings };
-        setSettings(updated);
-        localStorage.setItem(
-          USER_SETTINGS_STORAGE_KEY,
-          JSON.stringify(updated)
-        );
-      }
+          const updated = { ...settings, ...newSettings };
+          setSettings(updated);
+          localStorage.setItem(
+            USER_SETTINGS_STORAGE_KEY,
+            JSON.stringify(updated)
+          );
+        }
+      });
     } catch (error) {
       console.error('Failed to sync settings with API:', error);
     }

@@ -1,6 +1,7 @@
 import { CODE_PAYMENT_SERVICE_NAME } from '@/config/api.constants';
 import { USE_MOCK_API } from '@/config/mock.config';
 import { apiHelper } from '@/lib/api-helper';
+import { executeSWR } from '@/lib/swr-helper';
 
 export interface CreatePlanRequestDto {
   name: string;
@@ -37,41 +38,63 @@ export interface Subscription {
 }
 
 export const paymentService = {
-  getPlans: (skip: number = 0, limit: number = 10): Promise<Plan[]> => {
-    if (USE_MOCK_API && process.env.NODE_ENV === 'development') {
-      return Promise.resolve([
-        {
-          id: 'plan-basic-id',
-          name: 'VIP 1 Tháng',
-          durationMonths: 1,
-          price: 99000,
-          isActive: true,
-          features: ['Sử dụng suy luận', 'Sử dụng voice', 'Xử lý tài liệu riêng'],
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: 'plan-pro-id',
-          name: 'VIP 6 Tháng',
-          durationMonths: 6,
-          price: 499000,
-          isActive: true,
-          features: ['Sử dụng suy luận', 'Sử dụng voice', 'Xử lý tài liệu riêng'],
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: 'plan-vip-id',
-          name: 'VIP 12 Tháng',
-          durationMonths: 12,
-          price: 899000,
-          isActive: true,
-          features: ['Sử dụng suy luận', 'Sử dụng voice', 'Xử lý tài liệu riêng'],
-          createdAt: new Date().toISOString(),
-        },
-      ]);
-    }
-    return apiHelper.get<Plan[]>(`/${CODE_PAYMENT_SERVICE_NAME}/plans`, {
-      params: { skip, limit },
-    });
+  getPlans: (
+    skip: number = 0,
+    limit: number = 10,
+    onData?: (data: Plan[]) => void
+  ): Promise<Plan[]> => {
+    return executeSWR<Plan[]>(
+      `swr:plans:${skip}:${limit}`,
+      () => {
+        if (USE_MOCK_API && process.env.NODE_ENV === 'development') {
+          return Promise.resolve([
+            {
+              id: 'plan-basic-id',
+              name: 'VIP 1 Tháng',
+              durationMonths: 1,
+              price: 99000,
+              isActive: true,
+              features: [
+                'Sử dụng suy luận',
+                'Sử dụng voice',
+                'Xử lý tài liệu riêng',
+              ],
+              createdAt: new Date().toISOString(),
+            },
+            {
+              id: 'plan-pro-id',
+              name: 'VIP 6 Tháng',
+              durationMonths: 6,
+              price: 499000,
+              isActive: true,
+              features: [
+                'Sử dụng suy luận',
+                'Sử dụng voice',
+                'Xử lý tài liệu riêng',
+              ],
+              createdAt: new Date().toISOString(),
+            },
+            {
+              id: 'plan-vip-id',
+              name: 'VIP 12 Tháng',
+              durationMonths: 12,
+              price: 899000,
+              isActive: true,
+              features: [
+                'Sử dụng suy luận',
+                'Sử dụng voice',
+                'Xử lý tài liệu riêng',
+              ],
+              createdAt: new Date().toISOString(),
+            },
+          ]);
+        }
+        return apiHelper.get<Plan[]>(`/${CODE_PAYMENT_SERVICE_NAME}/plans`, {
+          params: { skip, limit },
+        });
+      },
+      onData
+    );
   },
 
   createPlan: (data: CreatePlanRequestDto): Promise<Plan> => {
@@ -96,33 +119,48 @@ export const paymentService = {
     );
   },
 
-  getMySubscription: async (): Promise<Subscription | null> => {
-    if (USE_MOCK_API && process.env.NODE_ENV === 'development') {
-      return { has_active_subscription: true };
-    }
+  getMySubscription: (
+    onData?: (data: Subscription | null) => void
+  ): Promise<Subscription | null> => {
+    return executeSWR<Subscription | null>(
+      'swr:subscription',
+      async () => {
+        if (USE_MOCK_API && process.env.NODE_ENV === 'development') {
+          return { has_active_subscription: true };
+        }
 
-    try {
-      return await apiHelper.get<Subscription>(
-        `/${CODE_PAYMENT_SERVICE_NAME}/subscriptions`
-      );
-    } catch (error: any) {
-      if (error.message.includes('404')) return null;
-      throw error;
-    }
+        try {
+          return await apiHelper.get<Subscription>(
+            `/${CODE_PAYMENT_SERVICE_NAME}/subscriptions`
+          );
+        } catch (error: any) {
+          if (error.message.includes('404')) return null;
+          throw error;
+        }
+      },
+      onData
+    );
   },
 
   getTransactionHistory: (
     skip: number = 0,
-    limit: number = 10
+    limit: number = 10,
+    onData?: (data: Transaction[]) => void
   ): Promise<Transaction[]> => {
-    if (USE_MOCK_API && process.env.NODE_ENV === 'development') {
-      return Promise.resolve([]);
-    }
-    return apiHelper.get<Transaction[]>(
-      `/${CODE_PAYMENT_SERVICE_NAME}/subscriptions/history`,
-      {
-        params: { skip, limit },
-      }
+    return executeSWR<Transaction[]>(
+      `swr:transaction_history:${skip}:${limit}`,
+      () => {
+        if (USE_MOCK_API && process.env.NODE_ENV === 'development') {
+          return Promise.resolve([]);
+        }
+        return apiHelper.get<Transaction[]>(
+          `/${CODE_PAYMENT_SERVICE_NAME}/subscriptions/history`,
+          {
+            params: { skip, limit },
+          }
+        );
+      },
+      onData
     );
   },
 

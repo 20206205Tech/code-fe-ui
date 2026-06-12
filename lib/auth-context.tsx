@@ -92,16 +92,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const syncSubscription = async () => {
     try {
-      const sub = await paymentService.getMySubscription();
-      console.log(
-        '[AuthContext] syncSubscription success. Fetched subscription:',
-        sub
-      );
-      console.log(
-        '[AuthContext] has_active_subscription:',
-        sub?.has_active_subscription
-      );
-      setSubscription(sub);
+      await paymentService.getMySubscription((sub) => {
+        console.log(
+          '[AuthContext] syncSubscription SWR update. Fetched subscription:',
+          sub
+        );
+        console.log(
+          '[AuthContext] has_active_subscription:',
+          sub?.has_active_subscription
+        );
+        setSubscription(sub);
+      });
     } catch (error) {
       console.error('[AuthContext] Failed to sync subscription:', error);
     }

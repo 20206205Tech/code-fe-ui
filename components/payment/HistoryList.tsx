@@ -42,16 +42,16 @@ export default function HistoryList() {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      const [historyData, plansData] = await Promise.all([
-        paymentService.getTransactionHistory(),
-        paymentService.getPlans(),
-      ]);
-      setTransactions(historyData);
-      setPlans(plansData);
+      await paymentService.getTransactionHistory(0, 10, (historyData) => {
+        setTransactions(historyData);
+        setIsLoading(false);
+      });
+      await paymentService.getPlans(0, 10, (plansData) => {
+        setPlans(plansData);
+      });
     } catch (error) {
       console.error('Failed to fetch transaction history:', error);
       toast.error('Không thể tải lịch sử giao dịch');
-    } finally {
       setIsLoading(false);
     }
   };
