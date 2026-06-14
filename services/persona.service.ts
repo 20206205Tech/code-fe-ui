@@ -73,16 +73,16 @@ export const personaService = {
   getPersonas: (
     page: number = 1,
     size: number = 10,
-    voice_uuid?: string,
+    persona_id?: string,
     onData?: (data: PaginatedPersona) => void
   ): Promise<PaginatedPersona> => {
     return executeSWR<PaginatedPersona>(
-      `swr:personas:${page}:${size}:${voice_uuid || ''}`,
+      `swr:personas:${page}:${size}:${persona_id || ''}`,
       () =>
         apiHelper.get<PaginatedPersona>(
           `/${CODE_PERSONA_SERVICE_NAME}/public/personas`,
           {
-            params: { page, size, voice_uuid },
+            params: { page, size, persona_id },
           }
         ),
       onData
@@ -95,10 +95,19 @@ export const personaService = {
   ): Promise<Persona> => {
     return executeSWR<Persona>(
       `swr:persona:${id}`,
-      () =>
-        apiHelper.get<Persona>(
-          `/${CODE_PERSONA_SERVICE_NAME}/public/personas/${id}`
-        ),
+      async () => {
+        const res = await apiHelper.get<PaginatedPersona>(
+          `/${CODE_PERSONA_SERVICE_NAME}/public/personas`,
+          {
+            params: { page: 1, size: 1, persona_id: id },
+          }
+        );
+        const persona = res.items[0];
+        if (!persona) {
+          throw new Error('Không tìm thấy nhân vật');
+        }
+        return persona;
+      },
       onData
     );
   },
