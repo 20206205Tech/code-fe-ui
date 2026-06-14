@@ -317,7 +317,7 @@ export function Sidebar() {
                   className="w-full justify-start text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
                   <Wrench size={18} className="mr-2" />
-                  Quản lý Engine
+                  Quản lý nền tảng TTS
                 </Button>
               </Link>
 
@@ -327,7 +327,7 @@ export function Sidebar() {
                   className="w-full justify-start text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
                   <Volume2 size={18} className="mr-2" />
-                  Quản lý Voice
+                  Quản lý giọng nói TTS
                 </Button>
               </Link>
 
