@@ -1,0 +1,60 @@
+name: Clear Vercel Env Vars
+
+on:
+  workflow_dispatch: # Đề xuất dùng trigger thủ công để tránh vô tình xóa mất dữ liệu
+  # push:
+  #   branches: [main]
+
+jobs:
+  clear-vercel-envs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Lấy tên Project Vercel
+        id: meta
+        run: |
+          # Tự động lấy tên repo làm tên project Vercel giống cách bạn đã làm
+          REPO_NAME_LOW=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g')
+          echo "PROJECT_NAME=$REPO_NAME_LOW" >> $GITHUB_ENV
+      - name: Fetch secrets from Doppler
+        id: doppler
+        uses: dopplerhq/secrets-fetch-action@v1.2.0
+        with:
+          doppler-token: ${{ secrets.DOPPLER_TOKEN }}
+          doppler-project: ${{ secrets.DOPPLER_PROJECT }}
+          doppler-config: ${{ secrets.DOPPLER_CONFIG }}
+          
+      # ---> ĐẶT STEP XÓA BIẾN VERCEL Ở ĐÂY <---
+      - name: Xóa toàn bộ biến môi trường trên Vercel
+        env:
+          # Lấy token từ output của bước Doppler thay vì GitHub Secrets
+          VERCEL_TOKEN: ${{ steps.doppler.outputs.VERCEL_TOKEN }}
+        run: |
+          echo "Đang lấy danh sách biến môi trường từ project: $PROJECT_NAME"
+
+          # 1. Gọi API để lấy toàn bộ dữ liệu biến môi trường
+          RESPONSE=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
+            "https://api.vercel.com/v9/projects/$PROJECT_NAME/env")
+
+          # 2. Kiểm tra xem API có trả về lỗi không
+          if echo "$RESPONSE" | jq -e '.error' > /dev/null; then
+            echo "Lỗi API: $(echo "$RESPONSE" | jq -r '.error.message')"
+            exit 1
+          fi
+
+          # 3. Lọc ra danh sách các ID của biến bằng jq
+          ENV_IDS=$(echo "$RESPONSE" | jq -r '.envs[]?.id // empty')
+
+          if [ -z "$ENV_IDS" ]; then
+            echo "Không có biến môi trường nào hiện tại. Bỏ qua bước xóa."
+            exit 0
+          fi
+
+          # 4. Lặp qua từng ID và tiến hành xóa
+          echo "Tìm thấy biến môi trường, bắt đầu xóa..."
+          for id in $ENV_IDS; do
+            echo "- Đang xóa biến có ID: $id"
+            curl -s -X DELETE -H "Authorization: Bearer $VERCEL_TOKEN" \
+              "https://api.vercel.com/v9/projects/$PROJECT_NAME/env/$id"
+          done
+
+          echo "✅ Đã xóa toàn bộ biến môi trường thành công!"
