@@ -20,11 +20,23 @@ export interface APIChatMessage {
 const CHATBOT_BASE = `/${CODE_CHATBOT_SERVICE_NAME}/chats`;
 
 export const chatbotService = {
-  getHistory: () => {
-    return apiHelper.get<ChatSession[]>(`${CHATBOT_BASE}`);
+  getHistory: (skip?: number, limit?: number) => {
+    const params = new URLSearchParams();
+    if (skip !== undefined) params.append('skip', skip.toString());
+    if (limit !== undefined) params.append('limit', limit.toString());
+    const query = params.toString();
+    return apiHelper.get<ChatSession[]>(
+      `${CHATBOT_BASE}${query ? `?${query}` : ''}`
+    );
   },
 
-  getChatMessages: (chatId: string) => {
-    return apiHelper.get<APIChatMessage[]>(`${CHATBOT_BASE}/${chatId}`);
+  getChatMessages: (chatId: string, beforeId?: string, limit?: number) => {
+    const params = new URLSearchParams();
+    if (beforeId) params.append('before_id', beforeId);
+    if (limit !== undefined) params.append('limit', limit.toString());
+    const query = params.toString();
+    return apiHelper.get<APIChatMessage[]>(
+      `${CHATBOT_BASE}/${chatId}${query ? `?${query}` : ''}`
+    );
   },
 };

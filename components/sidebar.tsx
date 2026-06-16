@@ -41,7 +41,7 @@ import {
 import Link from 'next/link';
 import { UserMenu } from './user-menu';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { toast } from 'sonner';
 
 export function Sidebar() {
@@ -59,6 +59,10 @@ export function Sidebar() {
   const [deleteTarget, setDeleteTarget] = useState<ChatSession | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const sidebarScrollRef = useRef<HTMLDivElement>(null);
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const activeChatId = searchParams.get('id');
@@ -68,15 +72,48 @@ export function Sidebar() {
     loadBookmarks();
   }, [activeChatId]); // Refresh history when active chat changes or on mount
 
-  const loadHistory = async () => {
-    setIsLoading(true);
+  const loadHistory = async (isLoadMore = false) => {
+    if (isLoadMore) {
+      setIsLoadingMore(true);
+    } else {
+      setIsLoading(true);
+    }
     try {
-      const history = await chatbotService.getHistory();
-      setSessions(history);
+      const limit = 15;
+      const skip = isLoadMore ? sessions.length : 0;
+      const history = await chatbotService.getHistory(skip, limit);
+      if (isLoadMore) {
+        setSessions((prev) => {
+          const existingIds = new Set(prev.map((s) => s.id));
+          const newSessions = history.filter((s) => !existingIds.has(s.id));
+          return [...prev, ...newSessions];
+        });
+      } else {
+        setSessions(history);
+      }
+      if (history.length < limit) {
+        setHasMore(false);
+      } else {
+        setHasMore(true);
+      }
     } catch (error) {
       console.error('Failed to load chat history:', error);
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
+    }
+  };
+
+  const handleSidebarScroll = () => {
+    if (!sidebarScrollRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = sidebarScrollRef.current;
+    if (
+      scrollHeight - scrollTop - clientHeight < 50 &&
+      hasMore &&
+      !isLoadingMore &&
+      !isLoading
+    ) {
+      loadHistory(true);
     }
   };
 
@@ -188,7 +225,11 @@ export function Sidebar() {
         </div>
 
         {/* Chat History */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        <div
+          ref={sidebarScrollRef}
+          onScroll={handleSidebarScroll}
+          className="flex-1 overflow-y-auto p-4 space-y-6"
+        >
           {/* Chat History */}
           <div>
             <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-3 px-1">
@@ -200,47 +241,57 @@ export function Sidebar() {
                   <Loader2 size={16} className="animate-spin text-slate-400" />
                 </div>
               ) : sessions.length > 0 ? (
-                sessions.slice(0, 5).map((session) => (
-                  <div
-                    key={session.id}
-                    className={`group relative flex items-center rounded-lg transition-all ${
-                      activeChatId === session.id
-                        ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800'
-                        : 'hover:bg-slate-50 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <button
-                      onClick={() => {
-                        setIsOpen(false);
-                        router.push(`/chat?id=${session.id}`);
-                      }}
-                      className={`flex-1 text-left p-3 text-sm ${
+                <>
+                  {sessions.map((session) => (
+                    <div
+                      key={session.id}
+                      className={`group relative flex items-center rounded-lg transition-all ${
                         activeChatId === session.id
-                          ? 'text-blue-600 dark:text-blue-400 font-medium'
-                          : 'text-slate-600 dark:text-slate-400'
+                          ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800'
+                          : 'hover:bg-slate-50 dark:hover:bg-slate-800'
                       }`}
                     >
-                      <p className="truncate pr-6">
-                        {session.title || 'Cuộc trò chuyện mới'}
-                      </p>
-                      <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
-                        {new Date(session.updated_at).toLocaleDateString(
-                          'vi-VN'
-                        )}
-                      </p>
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteTarget(session);
-                      }}
-                      className="absolute right-2 opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-all"
-                      title="Xóa cuộc trò chuyện"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                ))
+                      <button
+                        onClick={() => {
+                          setIsOpen(false);
+                          router.push(`/chat?id=${session.id}`);
+                        }}
+                        className={`flex-1 text-left p-3 text-sm ${
+                          activeChatId === session.id
+                            ? 'text-blue-600 dark:text-blue-400 font-medium'
+                            : 'text-slate-600 dark:text-slate-400'
+                        }`}
+                      >
+                        <p className="truncate pr-6">
+                          {session.title || 'Cuộc trò chuyện mới'}
+                        </p>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
+                          {new Date(session.updated_at).toLocaleDateString(
+                            'vi-VN'
+                          )}
+                        </p>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteTarget(session);
+                        }}
+                        className="absolute right-2 opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-all"
+                        title="Xóa cuộc trò chuyện"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  {isLoadingMore && (
+                    <div className="flex justify-center py-2">
+                      <Loader2
+                        size={16}
+                        className="animate-spin text-slate-400"
+                      />
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="text-sm text-slate-500 dark:text-slate-400 py-4 px-1">
                   Không có lịch sử trò chuyện
