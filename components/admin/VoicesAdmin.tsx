@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { Plus, Trash2, Edit2, Loader2, RotateCw } from 'lucide-react';
+import { usePagination } from '@/hooks/use-pagination';
+import { TablePagination } from '@/components/admin/TablePagination';
 import {
   TTSVoice,
   TTSEngine,
@@ -39,6 +41,10 @@ export default function VoicesAdmin() {
   const [editingVoice, setEditingVoice] = useState<TTSVoice | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
 
+  // State phân trang dùng chung
+  const { currentPage, pageSize, totalPages, totalItems, setPaginationData } =
+    usePagination(10);
+
   // Form state
   const [formData, setFormData] = useState({
     voice_code: '',
@@ -50,8 +56,10 @@ export default function VoicesAdmin() {
     try {
       setIsSyncing(true);
       const res = await personaService.syncElevenLabs();
-      toast.success(`Đồng bộ thành công ${res.synced_count} giọng nói từ ElevenLabs!`);
-      fetchData();
+      toast.success(
+        `Đồng bộ thành công ${res.synced_count} giọng nói từ ElevenLabs!`
+      );
+      fetchData(1);
     } catch (error: any) {
       console.error('Sync failed:', error);
       const errMsg = error?.response?.data?.detail || 'Đã xảy ra lỗi';
@@ -62,18 +70,19 @@ export default function VoicesAdmin() {
   };
 
   useEffect(() => {
-    fetchData();
+    fetchData(1);
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = async (page = 1) => {
     try {
       setIsLoading(true);
       const [voicesData, enginesData] = await Promise.all([
-        personaService.getVoicesAdmin(),
-        personaService.getEnginesAdmin(),
+        personaService.getVoicesAdmin(page, pageSize),
+        personaService.getEnginesAdmin(1, 100),
       ]);
-      setVoices(voicesData);
-      setEngines(enginesData);
+      setVoices(voicesData.items);
+      setPaginationData(voicesData);
+      setEngines(enginesData.items);
     } catch (error) {
       console.error('Failed to fetch voices or engines:', error);
       toast.error('Không thể tải danh sách TTS Voices hoặc Engines');
@@ -119,7 +128,7 @@ export default function VoicesAdmin() {
         toast.success('Đã tạo TTS Voice mới thành công');
       }
       setIsOpeningDialog(false);
-      fetchData();
+      fetchData(editingVoice ? currentPage : 1);
     } catch (error: any) {
       console.error('Submit failed:', error);
       const errMsg = error?.response?.data?.detail || 'Đã xảy ra lỗi';
@@ -144,7 +153,8 @@ export default function VoicesAdmin() {
     try {
       await personaService.deleteVoice(voice_uuid);
       toast.success('Đã xóa TTS Voice thành công');
-      fetchData();
+      const isLastItemOnPage = voices.length === 1 && currentPage > 1;
+      fetchData(isLastItemOnPage ? currentPage - 1 : currentPage);
     } catch (error: any) {
       console.error('Delete failed:', error);
       const errMsg = error?.response?.data?.detail || 'Đã xảy ra lỗi';
@@ -335,6 +345,16 @@ export default function VoicesAdmin() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Phân trang */}
+      <TablePagination
+        currentPage={currentPage}
+        pageSize={pageSize}
+        totalItems={totalItems}
+        totalPages={totalPages}
+        onPageChange={fetchData}
+        itemName="giọng đọc"
+      />
     </div>
   );
 }
