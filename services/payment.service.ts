@@ -35,6 +35,8 @@ export interface Transaction {
 
 export interface Subscription {
   has_active_subscription: boolean;
+  period_start?: string;
+  period_end?: string;
 }
 
 export const paymentService = {
@@ -145,20 +147,23 @@ export const paymentService = {
   getTransactionHistory: (
     skip: number = 0,
     limit: number = 10,
-    onData?: (data: Transaction[]) => void
-  ): Promise<Transaction[]> => {
-    return executeSWR<Transaction[]>(
+    onData?: (data: { items: Transaction[]; total: number }) => void
+  ): Promise<{ items: Transaction[]; total: number }> => {
+    return executeSWR<{ items: Transaction[]; total: number }>(
       `swr:transaction_history:${skip}:${limit}`,
-      () => {
+      async () => {
         if (USE_MOCK_API && process.env.NODE_ENV === 'development') {
-          return Promise.resolve([]);
+          return Promise.resolve({ items: [], total: 0 });
         }
-        return apiHelper.get<Transaction[]>(
-          `/${CODE_PAYMENT_SERVICE_NAME}/subscriptions/history`,
-          {
-            params: { skip, limit },
-          }
-        );
+        const response = await apiHelper.get<
+          { items: Transaction[]; total: number } | Transaction[]
+        >(`/${CODE_PAYMENT_SERVICE_NAME}/subscriptions/history`, {
+          params: { skip, limit },
+        });
+        if (Array.isArray(response)) {
+          return { items: response, total: response.length };
+        }
+        return response;
       },
       onData
     );
