@@ -118,7 +118,7 @@ export default function Home() {
   const fetchPersonas = async () => {
     try {
       setPersonasLoading(true);
-      await personaService.getPersonas(1, 50, undefined, (res) => {
+      await personaService.getPersonas(1, 100, undefined, (res) => {
         if (res && res.items && res.items.length > 0) {
           setPersonas(res.items.filter((item) => item.is_active));
         } else {

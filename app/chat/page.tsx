@@ -151,7 +151,7 @@ function ChatContent() {
     const fetchPersonas = async () => {
       setIsPersonasLoading(true);
       try {
-        const data = await personaService.getPersonas(1, 50);
+        const data = await personaService.getPersonas(1, 100);
         const activePersonas = data.items.filter((p) => p.is_active);
         setPersonas(activePersonas);
 
