@@ -43,6 +43,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 interface Message {
+  id?: string;
   role: 'user' | 'assistant';
   content: string;
   isStreaming?: boolean;
@@ -102,6 +103,11 @@ function ChatContent() {
   const [currentStatus, setCurrentStatus] = useState<string | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isBookmarkModalOpen, setIsBookmarkModalOpen] = useState(false);
+
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [isLoadingOlder, setIsLoadingOlder] = useState(false);
+  const mainRef = useRef<HTMLDivElement>(null);
+  const preventScrollRef = useRef(false);
 
   const useReasoning = settings.useReasoning;
   const setUseReasoning = (val: boolean) =>
@@ -253,7 +259,12 @@ function ChatContent() {
   const loadChatDetail = async (chatId: string) => {
     setIsHistoryLoading(true);
     try {
-      const history = await chatbotService.getChatMessages(chatId);
+      const limit = 20;
+      const history = await chatbotService.getChatMessages(
+        chatId,
+        undefined,
+        limit
+      );
       const mappedMessages: Message[] = (history || []).map((m, idx) => {
         const isLastMsg = idx === (history || []).length - 1;
         const hasPendingFlag =
@@ -269,6 +280,7 @@ function ChatContent() {
             m.content.includes('Tiếp tục?'));
 
         return {
+          id: m.id,
           role: m.role === 'human' ? 'user' : 'assistant',
           content: m.content,
           persona_id: m.persona_id,
@@ -279,6 +291,11 @@ function ChatContent() {
       });
       console.log('[ChatPage] Loaded history messages:', mappedMessages);
       setMessages(mappedMessages);
+      if (history && history.length === limit) {
+        setHasMoreMessages(true);
+      } else {
+        setHasMoreMessages(false);
+      }
     } catch (error) {
       console.error('Failed to load chat detail:', error);
     } finally {
@@ -291,8 +308,84 @@ function ChatContent() {
   };
 
   useEffect(() => {
+    if (preventScrollRef.current) {
+      preventScrollRef.current = false;
+      return;
+    }
     scrollToBottom();
   }, [messages]);
+
+  const loadOlderMessages = async (prevScrollHeight: number) => {
+    if (!activeChatId || isLoadingOlder) return;
+
+    const oldestDbMessage = messages.find((m) => m.id);
+    if (!oldestDbMessage?.id) return;
+
+    setIsLoadingOlder(true);
+    preventScrollRef.current = true;
+
+    try {
+      const limit = 20;
+      const history = await chatbotService.getChatMessages(
+        activeChatId,
+        oldestDbMessage.id,
+        limit
+      );
+
+      if (history && history.length > 0) {
+        const mappedOlder: Message[] = history.map((m) => {
+          const hasPendingFlag =
+            (m as any).pending_confirmation ||
+            (m as any).metadata?.pending_confirmation;
+          return {
+            id: m.id,
+            role: m.role === 'human' ? 'user' : 'assistant',
+            content: m.content,
+            persona_id: m.persona_id,
+            reasoning_steps: m.reasoning_steps,
+            sources: m.sources,
+            pending_confirmation: !!hasPendingFlag,
+          };
+        });
+
+        setMessages((prev) => [...mappedOlder, ...prev]);
+
+        if (history.length < limit) {
+          setHasMoreMessages(false);
+        } else {
+          setHasMoreMessages(true);
+        }
+
+        requestAnimationFrame(() => {
+          if (mainRef.current) {
+            const newScrollHeight = mainRef.current.scrollHeight;
+            const delta = newScrollHeight - prevScrollHeight;
+            mainRef.current.scrollTop = delta;
+          }
+        });
+      } else {
+        setHasMoreMessages(false);
+      }
+    } catch (error) {
+      console.error('Failed to load older messages:', error);
+      toast.error('Không thể tải tin nhắn cũ hơn');
+    } finally {
+      setIsLoadingOlder(false);
+    }
+  };
+
+  const handleScroll = () => {
+    if (!mainRef.current) return;
+    const { scrollTop, scrollHeight } = mainRef.current;
+    if (
+      scrollTop < 50 &&
+      hasMoreMessages &&
+      !isLoadingOlder &&
+      !isHistoryLoading
+    ) {
+      loadOlderMessages(scrollHeight);
+    }
+  };
 
   const isSendingRef = useRef(false);
 
@@ -817,7 +910,11 @@ function ChatContent() {
         </ChatHeader>
 
         {/* Messages Container */}
-        <main className="flex-1 overflow-y-auto pt-16 pb-24">
+        <main
+          ref={mainRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto pt-16 pb-24"
+        >
           <div className="max-w-4xl mx-auto">
             {messages.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center py-12 px-4 text-center">
@@ -860,6 +957,14 @@ function ChatContent() {
               </div>
             ) : (
               <div className="p-4 md:p-6">
+                {isLoadingOlder && (
+                  <div className="flex justify-center py-4">
+                    <Loader2
+                      size={20}
+                      className="animate-spin text-slate-400"
+                    />
+                  </div>
+                )}
                 {messages.map((msg, idx) => (
                   <div key={idx}>
                     {/* Move Status/Reasoning INSIDE the message bubble via props */}
