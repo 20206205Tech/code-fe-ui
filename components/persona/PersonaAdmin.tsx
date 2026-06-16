@@ -12,9 +12,9 @@ import {
   X,
   Volume2,
   Square,
-  ChevronLeft,
-  ChevronRight,
 } from 'lucide-react';
+import { usePagination } from '@/hooks/use-pagination';
+import { TablePagination } from '@/components/admin/TablePagination';
 import {
   Persona,
   CreatePersonaRequestDto,
@@ -58,11 +58,9 @@ export default function PersonaAdmin() {
   const [editingPersona, setEditingPersona] = useState<Persona | null>(null);
   const [selectedEngine, setSelectedEngine] = useState<string>('');
 
-  // State phân trang
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(5);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
+  // State phân trang dùng chung
+  const { currentPage, pageSize, totalPages, totalItems, setPaginationData } =
+    usePagination(10);
 
   const [engines, setEngines] = useState<TTSEngine[]>([]);
   const [voices, setVoices] = useState<TTSVoice[]>([]);
@@ -97,9 +95,7 @@ export default function PersonaAdmin() {
       setIsLoading(true);
       await personaService.getPersonas(page, pageSize, undefined, (data) => {
         setPersonas(data.items);
-        setCurrentPage(data.page);
-        setTotalPages(data.total_pages);
-        setTotalItems(data.total);
+        setPaginationData(data);
         setIsLoading(false);
       });
     } catch (error) {
@@ -111,11 +107,11 @@ export default function PersonaAdmin() {
 
   const fetchEnginesAndVoices = async () => {
     try {
-      await personaService.getEnginesAdmin((enginesData) => {
-        setEngines(enginesData);
+      await personaService.getEnginesAdmin(1, 100, (enginesData) => {
+        setEngines(enginesData.items);
       });
-      await personaService.getVoicesAdmin(undefined, (voicesData) => {
-        setVoices(voicesData);
+      await personaService.getVoicesAdmin(1, 1000, undefined, (voicesData) => {
+        setVoices(voicesData.items);
       });
     } catch (error) {
       console.error('Failed to fetch engines/voices:', error);
@@ -692,61 +688,14 @@ export default function PersonaAdmin() {
       </div>
 
       {/* Phân trang */}
-      {totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between mt-6 px-2 gap-4">
-          <div className="text-sm text-muted-foreground order-2 sm:order-1">
-            Hiển thị{' '}
-            <span className="font-semibold">
-              {(currentPage - 1) * pageSize + 1}
-            </span>{' '}
-            đến{' '}
-            <span className="font-semibold">
-              {Math.min(currentPage * pageSize, totalItems)}
-            </span>{' '}
-            trong tổng số <span className="font-semibold">{totalItems}</span>{' '}
-            nhân vật
-          </div>
-          <div className="flex items-center space-x-2 order-1 sm:order-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fetchPersonas(1)}
-              disabled={currentPage === 1}
-              className="hidden sm:inline-flex"
-            >
-              Trang đầu
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fetchPersonas(currentPage - 1)}
-              disabled={currentPage === 1}
-            >
-              <ChevronLeft className="w-4 h-4 mr-1" /> Trước
-            </Button>
-            <div className="text-sm font-medium px-2">
-              Trang {currentPage} / {totalPages}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fetchPersonas(currentPage + 1)}
-              disabled={currentPage === totalPages}
-            >
-              Sau <ChevronRight className="w-4 h-4 ml-1" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fetchPersonas(totalPages)}
-              disabled={currentPage === totalPages}
-              className="hidden sm:inline-flex"
-            >
-              Trang cuối
-            </Button>
-          </div>
-        </div>
-      )}
+      <TablePagination
+        currentPage={currentPage}
+        pageSize={pageSize}
+        totalItems={totalItems}
+        totalPages={totalPages}
+        onPageChange={fetchPersonas}
+        itemName="nhân vật"
+      />
     </div>
   );
 }

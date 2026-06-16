@@ -1,16 +1,10 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import {
-  Plus,
-  Trash2,
-  Edit2,
-  Loader2,
-} from 'lucide-react';
-import {
-  TTSEngine,
-  personaService,
-} from '@/services/persona.service';
+import { Plus, Trash2, Edit2, Loader2 } from 'lucide-react';
+import { usePagination } from '@/hooks/use-pagination';
+import { TablePagination } from '@/components/admin/TablePagination';
+import { TTSEngine, personaService } from '@/services/persona.service';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -41,6 +35,10 @@ export default function EnginesAdmin() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingEngine, setEditingEngine] = useState<TTSEngine | null>(null);
 
+  // State phân trang dùng chung
+  const { currentPage, pageSize, totalPages, totalItems, setPaginationData } =
+    usePagination(10);
+
   // Form state
   const [formData, setFormData] = useState({
     code: '',
@@ -49,14 +47,15 @@ export default function EnginesAdmin() {
   });
 
   useEffect(() => {
-    fetchEngines();
+    fetchEngines(1);
   }, []);
 
-  const fetchEngines = async () => {
+  const fetchEngines = async (page = 1) => {
     try {
       setIsLoading(true);
-      const data = await personaService.getEnginesAdmin();
-      setEngines(data);
+      const data = await personaService.getEnginesAdmin(page, pageSize);
+      setEngines(data.items);
+      setPaginationData(data);
     } catch (error) {
       console.error('Failed to fetch engines:', error);
       toast.error('Không thể tải danh sách TTS Engine');
@@ -102,7 +101,7 @@ export default function EnginesAdmin() {
         toast.success('Đã tạo TTS Engine mới thành công');
       }
       setIsOpeningDialog(false);
-      fetchEngines();
+      fetchEngines(editingEngine ? currentPage : 1);
     } catch (error: any) {
       console.error('Submit failed:', error);
       const errMsg = error?.response?.data?.detail || 'Đã xảy ra lỗi';
@@ -117,12 +116,18 @@ export default function EnginesAdmin() {
   };
 
   const handleDeleteEngine = async (id: string) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa TTS Engine này? Xóa engine có thể ảnh hưởng đến các Voices và Nhân vật liên quan.')) return;
+    if (
+      !confirm(
+        'Bạn có chắc chắn muốn xóa TTS Engine này? Xóa engine có thể ảnh hưởng đến các Voices và Nhân vật liên quan.'
+      )
+    )
+      return;
 
     try {
       await personaService.deleteEngine(id);
       toast.success('Đã xóa TTS Engine thành công');
-      fetchEngines();
+      const isLastItemOnPage = engines.length === 1 && currentPage > 1;
+      fetchEngines(isLastItemOnPage ? currentPage - 1 : currentPage);
     } catch (error: any) {
       console.error('Delete failed:', error);
       const errMsg = error?.response?.data?.detail || 'Đã xảy ra lỗi';
@@ -164,7 +169,7 @@ export default function EnginesAdmin() {
                 Nhập mã định danh và tên hiển thị cho TTS Engine.
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label htmlFor="code">Mã Engine (Code)</Label>
@@ -201,7 +206,10 @@ export default function EnginesAdmin() {
                     setFormData({ ...formData, is_active: checked })
                   }
                 />
-                <Label htmlFor="active" className="cursor-pointer text-sm font-medium">
+                <Label
+                  htmlFor="active"
+                  className="cursor-pointer text-sm font-medium"
+                >
                   Kích hoạt
                 </Label>
               </div>
@@ -249,7 +257,9 @@ export default function EnginesAdmin() {
             ) : (
               engines.map((engine) => (
                 <TableRow key={engine.id}>
-                  <TableCell className="font-mono text-xs">{engine.code}</TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {engine.code}
+                  </TableCell>
                   <TableCell className="font-medium">{engine.name}</TableCell>
                   <TableCell>
                     <Badge variant={engine.is_active ? 'default' : 'secondary'}>
@@ -279,6 +289,16 @@ export default function EnginesAdmin() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Phân trang */}
+      <TablePagination
+        currentPage={currentPage}
+        pageSize={pageSize}
+        totalItems={totalItems}
+        totalPages={totalPages}
+        onPageChange={fetchEngines}
+        itemName="bộ máy"
+      />
     </div>
   );
 }

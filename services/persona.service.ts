@@ -69,6 +69,22 @@ export interface TTSVoice {
   is_active: boolean;
 }
 
+export interface PaginatedVoice {
+  items: TTSVoice[];
+  total: number;
+  page: number;
+  size: number;
+  total_pages: number;
+}
+
+export interface PaginatedEngine {
+  items: TTSEngine[];
+  total: number;
+  page: number;
+  size: number;
+  total_pages: number;
+}
+
 export const personaService = {
   getPersonas: (
     page: number = 1,
@@ -197,11 +213,19 @@ export const personaService = {
 
   // ENGINES ADMIN CRUD
   getEnginesAdmin: (
-    onData?: (data: TTSEngine[]) => void
-  ): Promise<TTSEngine[]> => {
-    return executeSWR<TTSEngine[]>(
-      'swr:engines_admin',
-      () => apiHelper.get<TTSEngine[]>(`/${CODE_PERSONA_SERVICE_NAME}/engines`),
+    page: number = 1,
+    size: number = 10,
+    onData?: (data: PaginatedEngine) => void
+  ): Promise<PaginatedEngine> => {
+    return executeSWR<PaginatedEngine>(
+      `swr:engines_admin:${page}:${size}`,
+      () =>
+        apiHelper.get<PaginatedEngine>(
+          `/${CODE_PERSONA_SERVICE_NAME}/engines`,
+          {
+            params: { page, size },
+          }
+        ),
       onData
     );
   },
@@ -232,14 +256,16 @@ export const personaService = {
 
   // VOICES ADMIN CRUD
   getVoicesAdmin: (
+    page: number = 1,
+    size: number = 10,
     engine_code?: string,
-    onData?: (data: TTSVoice[]) => void
-  ): Promise<TTSVoice[]> => {
-    return executeSWR<TTSVoice[]>(
-      `swr:voices_admin:${engine_code || ''}`,
+    onData?: (data: PaginatedVoice) => void
+  ): Promise<PaginatedVoice> => {
+    return executeSWR<PaginatedVoice>(
+      `swr:voices_admin:${page}:${size}:${engine_code || ''}`,
       () =>
-        apiHelper.get<TTSVoice[]>(`/${CODE_PERSONA_SERVICE_NAME}/voices`, {
-          params: { engine_code },
+        apiHelper.get<PaginatedVoice>(`/${CODE_PERSONA_SERVICE_NAME}/voices`, {
+          params: { page, size, engine_code },
         }),
       onData
     );
