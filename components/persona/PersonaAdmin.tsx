@@ -12,6 +12,8 @@ import {
   X,
   Volume2,
   Square,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import {
   Persona,
@@ -56,6 +58,12 @@ export default function PersonaAdmin() {
   const [editingPersona, setEditingPersona] = useState<Persona | null>(null);
   const [selectedEngine, setSelectedEngine] = useState<string>('');
 
+  // State phân trang
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+
   const [engines, setEngines] = useState<TTSEngine[]>([]);
   const [voices, setVoices] = useState<TTSVoice[]>([]);
 
@@ -84,11 +92,14 @@ export default function PersonaAdmin() {
     fetchEnginesAndVoices();
   }, []);
 
-  const fetchPersonas = async () => {
+  const fetchPersonas = async (page = 1) => {
     try {
       setIsLoading(true);
-      await personaService.getPersonas(1, 100, undefined, (data) => {
+      await personaService.getPersonas(page, pageSize, undefined, (data) => {
         setPersonas(data.items);
+        setCurrentPage(data.page);
+        setTotalPages(data.total_pages);
+        setTotalItems(data.total);
         setIsLoading(false);
       });
     } catch (error) {
@@ -287,7 +298,7 @@ export default function PersonaAdmin() {
         toast.success('Đã tạo nhân vật mới');
       }
       setIsOpeningDialog(false);
-      fetchPersonas();
+      fetchPersonas(editingPersona ? currentPage : 1);
     } catch (error) {
       console.error('Submit failed:', error);
       toast.error(
@@ -306,7 +317,8 @@ export default function PersonaAdmin() {
     try {
       await personaService.deletePersona(id);
       toast.success('Đã xóa nhân vật');
-      fetchPersonas();
+      const isLastItemOnPage = personas.length === 1 && currentPage > 1;
+      fetchPersonas(isLastItemOnPage ? currentPage - 1 : currentPage);
     } catch (error) {
       console.error('Delete failed:', error);
       toast.error('Không thể xóa nhân vật');
@@ -678,6 +690,63 @@ export default function PersonaAdmin() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Phân trang */}
+      {totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between mt-6 px-2 gap-4">
+          <div className="text-sm text-muted-foreground order-2 sm:order-1">
+            Hiển thị{' '}
+            <span className="font-semibold">
+              {(currentPage - 1) * pageSize + 1}
+            </span>{' '}
+            đến{' '}
+            <span className="font-semibold">
+              {Math.min(currentPage * pageSize, totalItems)}
+            </span>{' '}
+            trong tổng số <span className="font-semibold">{totalItems}</span>{' '}
+            nhân vật
+          </div>
+          <div className="flex items-center space-x-2 order-1 sm:order-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchPersonas(1)}
+              disabled={currentPage === 1}
+              className="hidden sm:inline-flex"
+            >
+              Trang đầu
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchPersonas(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" /> Trước
+            </Button>
+            <div className="text-sm font-medium px-2">
+              Trang {currentPage} / {totalPages}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchPersonas(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              Sau <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchPersonas(totalPages)}
+              disabled={currentPage === totalPages}
+              className="hidden sm:inline-flex"
+            >
+              Trang cuối
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
