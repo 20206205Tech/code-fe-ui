@@ -80,7 +80,7 @@ export const personaService = {
       `swr:personas:${page}:${size}:${persona_id || ''}`,
       () =>
         apiHelper.get<PaginatedPersona>(
-          `/${CODE_PERSONA_SERVICE_NAME}/public/personas`,
+          `/${CODE_PERSONA_SERVICE_NAME}/personas`,
           {
             params: { page, size, persona_id },
           }
@@ -97,7 +97,7 @@ export const personaService = {
       `swr:persona:${id}`,
       async () => {
         const res = await apiHelper.get<PaginatedPersona>(
-          `/${CODE_PERSONA_SERVICE_NAME}/public/personas`,
+          `/${CODE_PERSONA_SERVICE_NAME}/personas`,
           {
             params: { page: 1, size: 1, persona_id: id },
           }
