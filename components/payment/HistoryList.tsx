@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { usePagination } from '@/hooks/use-pagination';
+import { TablePagination } from '@/components/admin/TablePagination';
 import { paymentService, Transaction, Plan } from '@/services/payment.service';
 import {
   Table,
@@ -35,20 +37,49 @@ export default function HistoryList() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const {
+    currentPage,
+    setCurrentPage,
+    pageSize,
+    totalPages,
+    totalItems,
+    setPaginationData,
+  } = usePagination(10);
+
   useEffect(() => {
     fetchData();
+  }, [currentPage]);
+
+  useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        await paymentService.getPlans(0, 50, (plansData) => {
+          setPlans(plansData);
+        });
+      } catch (error) {
+        console.error('Failed to fetch plans:', error);
+      }
+    };
+    fetchPlans();
   }, []);
 
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      await paymentService.getTransactionHistory(0, 10, (historyData) => {
-        setTransactions(historyData);
-        setIsLoading(false);
-      });
-      await paymentService.getPlans(0, 10, (plansData) => {
-        setPlans(plansData);
-      });
+      const skip = (currentPage - 1) * pageSize;
+      await paymentService.getTransactionHistory(
+        skip,
+        pageSize,
+        (historyData) => {
+          setTransactions(historyData.items);
+          setPaginationData({
+            page: currentPage,
+            total: historyData.total,
+            total_pages: Math.ceil(historyData.total / pageSize),
+          });
+          setIsLoading(false);
+        }
+      );
     } catch (error) {
       console.error('Failed to fetch transaction history:', error);
       toast.error('Không thể tải lịch sử giao dịch');
@@ -122,50 +153,60 @@ export default function HistoryList() {
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
-      <Table>
-        <TableHeader className="bg-slate-50/50 dark:bg-slate-800/50">
-          <TableRow className="hover:bg-transparent border-slate-200 dark:border-slate-800">
-            <TableHead className="w-[150px] font-bold text-slate-600 dark:text-slate-400">
-              Ngày mua
-            </TableHead>
-            <TableHead className="font-bold text-slate-600 dark:text-slate-400">
-              Gói cước
-            </TableHead>
-            <TableHead className="font-bold text-slate-600 dark:text-slate-400">
-              Số tiền
-            </TableHead>
-            <TableHead className="text-right font-bold text-slate-600 dark:text-slate-400">
-              Trạng thái
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {transactions.map((tx) => (
-            <TableRow
-              key={tx.id}
-              className="group hover:bg-slate-50/30 dark:hover:bg-slate-800/30 transition-colors border-slate-200 dark:border-slate-800"
-            >
-              <TableCell className="font-medium text-slate-500 dark:text-slate-500 text-xs">
-                {format(new Date(tx.created_at), 'dd/MM/yyyy HH:mm', {
-                  locale: vi,
-                })}
-              </TableCell>
-              <TableCell className="font-bold text-slate-900 dark:text-slate-100">
-                {getPlanName(tx.plan_id)}
-              </TableCell>
-              <TableCell className="font-semibold text-slate-800 dark:text-slate-200">
-                {formatCurrency(tx.amount || (tx as any).final_amount || 0)}
-              </TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end">
-                  {getStatusBadge(tx.status || (tx as any).payment_status)}
-                </div>
-              </TableCell>
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
+        <Table>
+          <TableHeader className="bg-slate-50/50 dark:bg-slate-800/50">
+            <TableRow className="hover:bg-transparent border-slate-200 dark:border-slate-800">
+              <TableHead className="w-[150px] font-bold text-slate-600 dark:text-slate-400">
+                Ngày mua
+              </TableHead>
+              <TableHead className="font-bold text-slate-600 dark:text-slate-400">
+                Gói cước
+              </TableHead>
+              <TableHead className="font-bold text-slate-600 dark:text-slate-400">
+                Số tiền
+              </TableHead>
+              <TableHead className="text-right font-bold text-slate-600 dark:text-slate-400">
+                Trạng thái
+              </TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {transactions.map((tx) => (
+              <TableRow
+                key={tx.id}
+                className="group hover:bg-slate-50/30 dark:hover:bg-slate-800/30 transition-colors border-slate-200 dark:border-slate-800"
+              >
+                <TableCell className="font-medium text-slate-500 dark:text-slate-500 text-xs">
+                  {format(new Date(tx.created_at), 'dd/MM/yyyy HH:mm', {
+                    locale: vi,
+                  })}
+                </TableCell>
+                <TableCell className="font-bold text-slate-900 dark:text-slate-100">
+                  {getPlanName(tx.plan_id)}
+                </TableCell>
+                <TableCell className="font-semibold text-slate-800 dark:text-slate-200">
+                  {formatCurrency(tx.amount || (tx as any).final_amount || 0)}
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end">
+                    {getStatusBadge(tx.status || (tx as any).payment_status)}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      <TablePagination
+        currentPage={currentPage}
+        pageSize={pageSize}
+        totalItems={totalItems}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        itemName="giao dịch"
+      />
     </div>
   );
 }

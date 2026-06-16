@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { Plus, Trash2, Loader2 } from 'lucide-react';
+import { usePagination } from '@/hooks/use-pagination';
+import { TablePagination } from '@/components/admin/TablePagination';
 import {
   Plan,
   CreatePlanRequestDto,
@@ -57,6 +59,8 @@ export default function PlansAdmin() {
   const [featuresInput, setFeaturesInput] = useState('');
   const [formData, setFormData] = useState<CreatePlanRequestDto>(DEFAULT_FORM);
 
+  const { currentPage, setCurrentPage, pageSize } = usePagination(5); // Sử dụng cỡ trang 5 cho gói cước
+
   useEffect(() => {
     fetchPlans();
   }, []);
@@ -64,7 +68,8 @@ export default function PlansAdmin() {
   const fetchPlans = async () => {
     try {
       setIsLoading(true);
-      await paymentService.getPlans(0, 50, (data) => {
+      // Fetch tối đa 100 plans để phục vụ phân trang client-side
+      await paymentService.getPlans(0, 100, (data) => {
         setPlans(data);
         setIsLoading(false);
       });
@@ -93,6 +98,7 @@ export default function PlansAdmin() {
       setIsOpeningDialog(false);
       setFormData(DEFAULT_FORM);
       setFeaturesInput('');
+      setCurrentPage(1); // Reset về trang 1 sau khi tạo mới
       fetchPlans();
     } catch (error) {
       console.error('Create failed:', error);
@@ -107,12 +113,22 @@ export default function PlansAdmin() {
     try {
       await paymentService.deletePlan(id);
       toast.success('Đã xóa gói cước');
+
+      const newTotal = plans.length - 1;
+      const maxPage = Math.max(1, Math.ceil(newTotal / pageSize));
+      if (currentPage > maxPage) {
+        setCurrentPage(maxPage);
+      }
+
       fetchPlans();
     } catch (error) {
       console.error('Delete failed:', error);
       toast.error('Không thể xóa gói cước');
     }
   };
+
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedPlans = plans.slice(startIndex, startIndex + pageSize);
 
   if (isLoading) {
     return (
@@ -285,7 +301,7 @@ export default function PlansAdmin() {
                 </TableCell>
               </TableRow>
             ) : (
-              plans.map((plan) => (
+              paginatedPlans.map((plan) => (
                 <TableRow key={plan.id}>
                   <TableCell className="font-medium">{plan.name}</TableCell>
                   <TableCell>{plan.durationMonths} tháng</TableCell>
@@ -324,6 +340,14 @@ export default function PlansAdmin() {
           </TableBody>
         </Table>
       </div>
+      <TablePagination
+        currentPage={currentPage}
+        pageSize={pageSize}
+        totalItems={plans.length}
+        totalPages={Math.ceil(plans.length / pageSize)}
+        onPageChange={setCurrentPage}
+        itemName="gói cước"
+      />
     </div>
   );
 }

@@ -16,6 +16,8 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 import { DEFAULT_FEATURES } from '@/constants/plan.constants';
+import { useAuth } from '@/lib/auth-context';
+import { format } from 'date-fns';
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('vi-VN', {
@@ -25,6 +27,7 @@ const formatCurrency = (amount: number) => {
 };
 
 export default function PlansList() {
+  const { subscription } = useAuth();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isPurchasing, setIsPurchasing] = useState<string | null>(null);
@@ -91,6 +94,28 @@ export default function PlansList() {
 
   return (
     <div className="container mx-auto py-4 px-0">
+      {subscription?.has_active_subscription &&
+        subscription.period_start &&
+        subscription.period_end && (
+          <div className="mb-8 p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl text-emerald-850 dark:text-emerald-400 text-sm font-medium flex items-center justify-between shadow-sm max-w-6xl mx-auto">
+            <div className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-emerald-600 dark:text-emerald-400 fill-emerald-500/20" />
+              <span>
+                Bạn đang sử dụng gói dịch vụ VIP. Thời hạn:{' '}
+                <strong>
+                  {format(new Date(subscription.period_start), 'dd/MM/yyyy')}
+                </strong>{' '}
+                đến{' '}
+                <strong>
+                  {format(new Date(subscription.period_end), 'dd/MM/yyyy')}
+                </strong>
+              </span>
+            </div>
+            <Badge className="bg-emerald-600 text-white hover:bg-emerald-700 font-bold border-none px-3 py-1 text-xs">
+              Đang hoạt động
+            </Badge>
+          </div>
+        )}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
         {plans.map((plan) => {
           const features = plan.features?.length
