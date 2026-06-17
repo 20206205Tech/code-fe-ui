@@ -17,6 +17,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { usePagination } from '@/hooks/use-pagination';
+import { TablePagination } from '@/components/admin/TablePagination';
 
 interface BookmarkItem {
   id: string;
@@ -40,14 +42,30 @@ export default function BookmarksManager() {
   const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
 
+  const {
+    currentPage,
+    setCurrentPage,
+    pageSize,
+    totalPages,
+    totalItems,
+    setPaginationData,
+  } = usePagination(10);
+
   useEffect(() => {
     fetchBookmarks();
-  }, []);
+  }, [currentPage]);
 
   const fetchBookmarks = async () => {
     try {
       setIsLoading(true);
-      const folderList = await conversationService.getBookmarkFolders();
+      const skip = (currentPage - 1) * pageSize;
+      const response = await conversationService.getBookmarkFolders(
+        skip,
+        pageSize
+      );
+
+      const folderList = response.items || [];
+      const total = response.total || 0;
 
       const detailedFolders = await Promise.all(
         folderList.map(async (f: any) => {
@@ -61,6 +79,11 @@ export default function BookmarksManager() {
       );
 
       setFolders(detailedFolders);
+      setPaginationData({
+        page: currentPage,
+        total,
+        total_pages: Math.ceil(total / pageSize),
+      });
 
       // Auto-select first item if available
       if (detailedFolders.length > 0 && detailedFolders[0].items.length > 0) {
@@ -194,6 +217,19 @@ export default function BookmarksManager() {
             ))
           )}
         </div>
+
+        {totalItems > 0 && (
+          <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+            <TablePagination
+              currentPage={currentPage}
+              pageSize={pageSize}
+              totalItems={totalItems}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              itemName="thư mục"
+            />
+          </div>
+        )}
       </div>
 
       {/* Detail View (Notes) */}

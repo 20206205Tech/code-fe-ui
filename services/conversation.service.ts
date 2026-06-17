@@ -210,8 +210,8 @@ export const conversationService = {
   },
 
   // Bookmark methods
-  getBookmarkFolders: (skip = 0, limit = 100) => {
-    return apiHelper.get<any[]>(`${BOOKMARK_BASE}`, {
+  getBookmarkFolders: (skip = 0, limit = 10) => {
+    return apiHelper.get<{ items: any[]; total: number }>(`${BOOKMARK_BASE}`, {
       params: { skip, limit },
     });
   },
@@ -249,10 +249,13 @@ export const conversationService = {
       last_message_id: lastMessageId || undefined,
     }),
 
-  getMySharedChats: (skip = 0, limit = 100) => {
-    return apiHelper.get<SharedChat[]>(`${SHARE_BASE}`, {
-      params: { skip, limit },
-    });
+  getMySharedChats: (skip = 0, limit = 10) => {
+    return apiHelper.get<{ items: SharedChat[]; total: number }>(
+      `${SHARE_BASE}`,
+      {
+        params: { skip, limit },
+      }
+    );
   },
 
   getPublicShareDetail: async (shareId: string, token: string) => {

@@ -120,7 +120,8 @@ export function Sidebar() {
   const loadBookmarks = async () => {
     setIsBookmarksLoading(true);
     try {
-      const folders = await conversationService.getBookmarkFolders();
+      const response = await conversationService.getBookmarkFolders(0, 100);
+      const folders = response.items || [];
       // For each folder, fetch detail to get items
       const foldersWithItems = await Promise.all(
         folders.map(async (f: any) => {
