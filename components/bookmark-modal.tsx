@@ -41,10 +41,11 @@ export function BookmarkModal({ isOpen, onClose, chatId }: BookmarkModalProps) {
   const loadFolders = async () => {
     setIsLoading(true);
     try {
-      const data = await conversationService.getBookmarkFolders();
-      setFolders(data);
-      if (data.length > 0 && !selectedFolderId) {
-        setSelectedFolderId(data[0].id);
+      const response = await conversationService.getBookmarkFolders(0, 100);
+      const items = response.items || [];
+      setFolders(items);
+      if (items.length > 0 && !selectedFolderId) {
+        setSelectedFolderId(items[0].id);
       }
     } catch (error) {
       console.error(error);

@@ -24,6 +24,8 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { usePagination } from '@/hooks/use-pagination';
+import { TablePagination } from '@/components/admin/TablePagination';
 
 export default function SharesManager() {
   const { toast } = useToast();
@@ -33,15 +35,37 @@ export default function SharesManager() {
   const [deleteTarget, setDeleteTarget] = useState<SharedChat | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const {
+    currentPage,
+    setCurrentPage,
+    pageSize,
+    totalPages,
+    totalItems,
+    setPaginationData,
+  } = usePagination(10);
+
   useEffect(() => {
     loadShares();
-  }, []);
+  }, [currentPage]);
 
   const loadShares = async () => {
     setIsLoading(true);
     try {
-      const data = await conversationService.getMySharedChats(0, 100);
-      setShares(Array.isArray(data) ? data : []);
+      const skip = (currentPage - 1) * pageSize;
+      const response = await conversationService.getMySharedChats(
+        skip,
+        pageSize
+      );
+
+      const items = response.items || [];
+      const total = response.total || 0;
+
+      setShares(items);
+      setPaginationData({
+        page: currentPage,
+        total,
+        total_pages: Math.ceil(total / pageSize),
+      });
     } catch (error) {
       console.error('Failed to load shares:', error);
       toast({
@@ -136,7 +160,7 @@ export default function SharesManager() {
             Quản lý chia sẻ
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            {shares.length} link chia sẻ đang hoạt động
+            {totalItems} link chia sẻ đang hoạt động
           </p>
         </div>
       </div>
@@ -168,7 +192,7 @@ export default function SharesManager() {
                 </div>
 
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Được tạo  {formatDate(share.createdAt)}
+                  Được tạo {formatDate(share.createdAt)}
                 </p>
               </div>
 
@@ -216,6 +240,17 @@ export default function SharesManager() {
           </div>
         ))}
       </div>
+
+      {totalItems > 0 && (
+        <TablePagination
+          currentPage={currentPage}
+          pageSize={pageSize}
+          totalItems={totalItems}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          itemName="link chia sẻ"
+        />
+      )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog
