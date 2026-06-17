@@ -52,9 +52,7 @@ export function Sidebar() {
 
   const [isOpen, setIsOpen] = useState(false);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
-  const [bookmarkFolders, setBookmarkFolders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isBookmarksLoading, setIsBookmarksLoading] = useState(false);
   const [isStartingChat, setIsStartingChat] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ChatSession | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -69,7 +67,6 @@ export function Sidebar() {
 
   useEffect(() => {
     loadHistory();
-    loadBookmarks();
   }, [activeChatId]); // Refresh history when active chat changes or on mount
 
   const loadHistory = async (isLoadMore = false) => {
@@ -114,26 +111,6 @@ export function Sidebar() {
       !isLoading
     ) {
       loadHistory(true);
-    }
-  };
-
-  const loadBookmarks = async () => {
-    setIsBookmarksLoading(true);
-    try {
-      const response = await conversationService.getBookmarkFolders(0, 100);
-      const folders = response.items || [];
-      // For each folder, fetch detail to get items
-      const foldersWithItems = await Promise.all(
-        folders.map(async (f: any) => {
-          const detail = await conversationService.getBookmarkDetail(f.id);
-          return { ...f, items: detail.items || [] };
-        })
-      );
-      setBookmarkFolders(foldersWithItems);
-    } catch (error) {
-      console.error('Failed to load bookmarks:', error);
-    } finally {
-      setIsBookmarksLoading(false);
     }
   };
 
