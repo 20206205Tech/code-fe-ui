@@ -6,6 +6,7 @@ import {
   MessageSquare,
   Trash2,
   Loader2,
+  ChevronLeft,
   ChevronRight,
   ExternalLink,
   Search,
@@ -18,7 +19,6 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { usePagination } from '@/hooks/use-pagination';
-import { TablePagination } from '@/components/admin/TablePagination';
 
 interface BookmarkItem {
   id: string;
@@ -219,15 +219,35 @@ export default function BookmarksManager() {
         </div>
 
         {totalItems > 0 && (
-          <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-            <TablePagination
-              currentPage={currentPage}
-              pageSize={pageSize}
-              totalItems={totalItems}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-              itemName="thư mục"
-            />
+          <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between text-xs">
+            <span className="text-slate-500 dark:text-slate-400 font-medium">
+              Tổng: {totalItems} thư mục
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 hover:bg-slate-100 dark:hover:bg-slate-800"
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft size={14} />
+              </Button>
+              <span className="font-semibold text-slate-700 dark:text-slate-300">
+                Trang {currentPage} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 hover:bg-slate-100 dark:hover:bg-slate-800"
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                }
+                disabled={currentPage === totalPages}
+              >
+                <ChevronRight size={14} />
+              </Button>
+            </div>
           </div>
         )}
       </div>
