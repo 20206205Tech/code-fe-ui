@@ -160,7 +160,7 @@ export default function SharesManager() {
             Quản lý chia sẻ
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            {shares.length} link chia sẻ đang hoạt động
+            {totalItems} link chia sẻ đang hoạt động
           </p>
         </div>
       </div>
