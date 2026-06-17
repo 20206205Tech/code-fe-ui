@@ -125,17 +125,17 @@ export default function PlansList() {
           return (
             <Card
               key={plan.id}
-              className="relative flex flex-col border transition-all duration-300 overflow-hidden border-slate-900 bg-slate-900 text-white shadow-2xl"
+              className="relative flex flex-col border transition-all duration-300 overflow-hidden border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-lg dark:shadow-2xl hover:shadow-xl dark:hover:shadow-slate-900/50 hover:scale-[1.02]"
             >
               {/* Badge: hiển thị số tháng */}
               <div className="absolute top-4 right-4">
-                <Badge className="bg-white text-slate-900 hover:bg-slate-100 border-0 font-bold px-3 py-1 uppercase text-[10px] tracking-tighter">
+                <Badge className="bg-slate-900 text-white dark:bg-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-100 border-0 font-bold px-3 py-1 uppercase text-[10px] tracking-tighter shadow-sm">
                   {plan.durationMonths} tháng
                 </Badge>
               </div>
 
               <CardHeader className="pb-2 pt-8 px-8 flex flex-col items-center text-center">
-                <CardTitle className="text-lg font-bold uppercase tracking-widest mb-1 text-slate-400">
+                <CardTitle className="text-lg font-bold uppercase tracking-widest mb-1 text-slate-700 dark:text-slate-200">
                   {plan.name}
                 </CardTitle>
                 <div className="mt-4 flex flex-col items-center">
@@ -149,14 +149,14 @@ export default function PlansList() {
               </CardHeader>
 
               <CardContent className="flex-grow px-8 pt-3 pb-6">
-                <div className="h-px w-full bg-slate-200 mb-4 opacity-20" />
+                <div className="h-px w-full bg-slate-200 dark:bg-slate-800 mb-4" />
                 <ul className="space-y-5">
                   {features.map((feature, i) => (
                     <li key={i} className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-800 text-slate-400">
-                        <Check className="w-3 h-3" />
+                      <div className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 shrink-0">
+                        <Check className="w-3 h-3 stroke-[3]" />
                       </div>
-                      <span className="text-sm font-medium text-slate-300">
+                      <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
                         {feature}
                       </span>
                     </li>
@@ -166,7 +166,7 @@ export default function PlansList() {
 
               <CardFooter className="px-8 pb-8 pt-0">
                 <Button
-                  className="w-full text-xs font-bold h-12 uppercase tracking-[0.2em] transition-all duration-300 bg-white text-slate-900 hover:bg-slate-200"
+                  className="w-full text-xs font-bold h-12 uppercase tracking-[0.2em] transition-all duration-300 bg-slate-900 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
                   onClick={() => handlePurchase(plan)}
                   disabled={isPurchasing !== null}
                 >

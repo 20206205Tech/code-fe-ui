@@ -24,7 +24,7 @@ export default function PlansPage() {
               <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div className="space-y-1">
                   <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white uppercase">
-                    Cài đặt gói cước
+                    Danh sách gói cước
                   </h2>
                   <p className="text-slate-500 text-sm">
                     Quản lý các gói đăng ký và theo dõi lịch sử giao dịch của
