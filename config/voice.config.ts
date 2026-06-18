@@ -11,7 +11,7 @@ export const VOICE_SUGGESTIONS = [
   // '1+1',
 ];
 
-export const SHOW_VOICE_TEXT_SUGGESTIONS =
-  process.env.NODE_ENV === 'development';
+// export const SHOW_VOICE_TEXT_SUGGESTIONS =
+//   process.env.NODE_ENV === 'development';
 // export const SHOW_VOICE_TEXT_SUGGESTIONS = false;
-// export const SHOW_VOICE_TEXT_SUGGESTIONS = true;
+export const SHOW_VOICE_TEXT_SUGGESTIONS = true;
