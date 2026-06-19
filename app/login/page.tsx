@@ -7,12 +7,17 @@ import { getAALFromToken } from '@/lib/token-helper';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { authService } from '../../services/auth-user.service';
+import { authService, type AuthToken } from '../../services/auth-user.service';
+
+const PASSWORD_RECOVERY_TEST_EMAIL = 'test@20206205.tech';
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'Thao tác thất bại';
+}
 
 export default function LoginPage() {
   const router = useRouter();
-  const { isAuthenticated, isMfaRequired, isLoading, login, tokens } =
-    useAuth();
+  const { isAuthenticated, isMfaRequired, isLoading, login } = useAuth();
 
   const [authMode, setAuthMode] = useState<
     'login' | 'signup' | 'forgot-password' | 'verify-email'
@@ -51,6 +56,11 @@ export default function LoginPage() {
     authService.loginWithGoogle();
   };
 
+  const openForgotPassword = () => {
+    setEmail(PASSWORD_RECOVERY_TEST_EMAIL);
+    setAuthMode('forgot-password');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
@@ -59,7 +69,10 @@ export default function LoginPage() {
     try {
       if (authMode === 'login') {
         if (!password) return;
-        const data = await authService.loginWithEmailPassword(email, password);
+        const data = (await authService.loginWithEmailPassword(
+          email,
+          password
+        )) as AuthToken;
 
         // Sau khi login pass thành công, check xem có cần MFA không
         const aal = getAALFromToken(data.access_token);
@@ -80,8 +93,8 @@ export default function LoginPage() {
         await authService.recoverPassword(email);
         setAuthMode('verify-email');
       }
-    } catch (error: any) {
-      toast.error(error.message || 'Thao tác thất bại');
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error));
     } finally {
       setIsLoadingAction(false);
     }
@@ -149,11 +162,16 @@ export default function LoginPage() {
             <>
               <div className="text-center mb-10">
                 <h1 className="text-3xl font-bold text-white tracking-tight mb-2">
-                  {AUTH_CONTENT[authMode as keyof typeof AUTH_CONTENT].title}
+                  {AUTH_CONTENT[authMode].title}
                 </h1>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-5 mb-8">
+              <form
+                onSubmit={(e) => {
+                  void handleSubmit(e);
+                }}
+                className="space-y-5 mb-8"
+              >
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-300 ml-1">
                     Địa chỉ Email
@@ -177,7 +195,7 @@ export default function LoginPage() {
                       {authMode === 'login' && (
                         <button
                           type="button"
-                          onClick={() => setAuthMode('forgot-password')}
+                          onClick={openForgotPassword}
                           className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
                         >
                           Quên mật khẩu?
