@@ -3,6 +3,7 @@
 import { useEffect, useCallback, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
+import { cookieHelper } from '@/lib/cookie-helper';
 import { authMfaService } from '@/services/auth-mfa.service';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -11,6 +12,7 @@ import { Loader2, Smartphone } from 'lucide-react';
 import { getFriendlyDeviceName } from '@/lib/device-helper';
 
 const AUTH_NEXT_STORAGE_KEY = 'auth_next_path';
+const RECOVERY_NEXT_PATH = '/auth/reset-password';
 const OTP_LENGTH = 6;
 
 type ApiError = {
@@ -25,17 +27,24 @@ function getSafeNextPath() {
   const nextFromQuery = new URLSearchParams(window.location.search).get('next');
   const nextFromStorage = sessionStorage.getItem(AUTH_NEXT_STORAGE_KEY);
   const nextFromLocalStorage = localStorage.getItem(AUTH_NEXT_STORAGE_KEY);
+  const cookieValue: unknown = cookieHelper.get(AUTH_NEXT_STORAGE_KEY);
   const nextPath =
-    nextFromQuery || nextFromStorage || nextFromLocalStorage || '/chat';
+    nextFromQuery ||
+    nextFromStorage ||
+    nextFromLocalStorage ||
+    (typeof cookieValue === 'string' ? cookieValue : null) ||
+    '/chat';
 
   if (!nextPath.startsWith('/') || nextPath.startsWith('//')) {
     sessionStorage.removeItem(AUTH_NEXT_STORAGE_KEY);
     localStorage.removeItem(AUTH_NEXT_STORAGE_KEY);
+    cookieHelper.remove(AUTH_NEXT_STORAGE_KEY);
     return '/chat';
   }
 
   sessionStorage.removeItem(AUTH_NEXT_STORAGE_KEY);
   localStorage.removeItem(AUTH_NEXT_STORAGE_KEY);
+  cookieHelper.remove(AUTH_NEXT_STORAGE_KEY);
   return nextPath;
 }
 
@@ -107,8 +116,13 @@ export default function MfaPage() {
           verifyData.refresh_token,
           verifyData.expires_in
         );
-        toast.success('Xác thực MFA thành công');
-        router.push(getSafeNextPath());
+        const nextPath = getSafeNextPath();
+        toast.success(
+          nextPath === RECOVERY_NEXT_PATH
+            ? 'Xác thực MFA thành công, tiếp tục đặt lại mật khẩu'
+            : 'Xác thực MFA thành công'
+        );
+        router.push(nextPath);
       } catch {
         toast.error('Mã xác thực MFA không chính xác');
       } finally {

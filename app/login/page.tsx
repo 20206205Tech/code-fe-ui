@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/lib/auth-context';
+import { cookieHelper } from '@/lib/cookie-helper';
 import { getAALFromToken } from '@/lib/token-helper';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -90,6 +91,9 @@ export default function LoginPage() {
         setAuthMode('verify-email');
       } else if (authMode === 'forgot-password') {
         localStorage.setItem(AUTH_NEXT_STORAGE_KEY, RECOVERY_NEXT_PATH);
+        cookieHelper.set(AUTH_NEXT_STORAGE_KEY, RECOVERY_NEXT_PATH, {
+          maxAge: 30 * 60,
+        });
         await authService.recoverPassword(email);
         setAuthMode('verify-email');
       }

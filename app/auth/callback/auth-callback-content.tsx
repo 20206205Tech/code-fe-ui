@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/lib/auth-context';
+import { cookieHelper } from '@/lib/cookie-helper';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
@@ -49,11 +50,15 @@ export function AuthCallbackContent() {
         const type = hashParams.get('type') || searchParams.get('type');
         const isRecovery =
           type === 'recovery' ||
-          localStorage.getItem(AUTH_NEXT_STORAGE_KEY) === RECOVERY_NEXT_PATH;
+          localStorage.getItem(AUTH_NEXT_STORAGE_KEY) === RECOVERY_NEXT_PATH ||
+          cookieHelper.get(AUTH_NEXT_STORAGE_KEY) === RECOVERY_NEXT_PATH;
 
         if (isRecovery) {
           sessionStorage.setItem(AUTH_NEXT_STORAGE_KEY, RECOVERY_NEXT_PATH);
           localStorage.setItem(AUTH_NEXT_STORAGE_KEY, RECOVERY_NEXT_PATH);
+          cookieHelper.set(AUTH_NEXT_STORAGE_KEY, RECOVERY_NEXT_PATH, {
+            maxAge: 30 * 60,
+          });
           router.push(
             `/auth/mfa?next=${encodeURIComponent(RECOVERY_NEXT_PATH)}`
           );

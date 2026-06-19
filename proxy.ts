@@ -5,6 +5,7 @@ import { getAALFromToken, getUserRoleFromToken } from './lib/token-helper';
 const publicRoutes = ['/', '/login', '/auth/callback'];
 const adminRoutes = ['/admin'];
 const mfaRoute = '/auth/mfa';
+const authNextCookieKey = 'auth_next_path';
 
 type AuthTokensCookie = {
   access_token?: unknown;
@@ -26,7 +27,9 @@ function parseAccessTokenFromCookie(cookieValue?: string) {
 }
 
 function getSafeNextPath(request: NextRequest) {
-  const nextPath = request.nextUrl.searchParams.get('next');
+  const nextPath =
+    request.nextUrl.searchParams.get('next') ||
+    request.cookies.get(authNextCookieKey)?.value;
 
   if (!nextPath || !nextPath.startsWith('/') || nextPath.startsWith('//')) {
     return '/chat';
@@ -76,9 +79,11 @@ export function proxy(request: NextRequest) {
   }
 
   if (hasAuth && aal === 'aal2' && pathname === mfaRoute) {
-    return NextResponse.redirect(
+    const response = NextResponse.redirect(
       new URL(getSafeNextPath(request), request.url)
     );
+    response.cookies.delete(authNextCookieKey);
+    return response;
   }
 
   const isAdminRoute = adminRoutes.some((route) => pathname.startsWith(route));
