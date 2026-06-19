@@ -35,17 +35,15 @@ function getSafeNextPath() {
     (typeof cookieValue === 'string' ? cookieValue : null) ||
     '/chat';
 
-  if (!nextPath.startsWith('/') || nextPath.startsWith('//')) {
-    sessionStorage.removeItem(AUTH_NEXT_STORAGE_KEY);
-    localStorage.removeItem(AUTH_NEXT_STORAGE_KEY);
-    cookieHelper.remove(AUTH_NEXT_STORAGE_KEY);
-    return '/chat';
-  }
+  if (!nextPath.startsWith('/') || nextPath.startsWith('//')) return '/chat';
 
+  return nextPath;
+}
+
+function clearNextPath() {
   sessionStorage.removeItem(AUTH_NEXT_STORAGE_KEY);
   localStorage.removeItem(AUTH_NEXT_STORAGE_KEY);
   cookieHelper.remove(AUTH_NEXT_STORAGE_KEY);
-  return nextPath;
 }
 
 function getApiError(error: unknown): ApiError {
@@ -103,6 +101,7 @@ export default function MfaPage() {
 
       setIsSubmitting(true);
       try {
+        const nextPath = getSafeNextPath();
         const verifyData = await authMfaService.verifyMFA(
           mfaData.factorId,
           mfaData.challengeId,
@@ -116,7 +115,7 @@ export default function MfaPage() {
           verifyData.refresh_token,
           verifyData.expires_in
         );
-        const nextPath = getSafeNextPath();
+        clearNextPath();
         toast.success(
           nextPath === RECOVERY_NEXT_PATH
             ? 'Xác thực MFA thành công, tiếp tục đặt lại mật khẩu'
@@ -286,7 +285,9 @@ export default function MfaPage() {
           // Redirect to chat only if already aal2 AND has active factors
           const currentAAL = getAALFromToken(tokens.access_token);
           if (currentAAL === 'aal2' && factors.active.length > 0) {
-            router.push(getSafeNextPath());
+            const nextPath = getSafeNextPath();
+            clearNextPath();
+            router.push(nextPath);
             return;
           }
 
