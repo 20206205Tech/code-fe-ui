@@ -18,6 +18,27 @@ export interface User {
   role?: string;
 }
 
+type AuthErrorResponse = {
+  error_code?: string;
+  error_description?: string;
+  msg?: string;
+};
+
+type ErrorWithCode = Error & {
+  errorCode?: string;
+};
+
+function getAuthErrorData(error: unknown): AuthErrorResponse {
+  if (!axios.isAxiosError<AuthErrorResponse>(error)) return {};
+
+  const data = error.response?.data;
+  return data && typeof data === 'object' ? data : {};
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'Unknown error';
+}
+
 export const authService = {
   loginWithGoogle: () => {
     const baseUrl =
@@ -34,22 +55,29 @@ export const authService = {
     window.location.href = authUrl.toString();
   },
 
-  loginWithEmailPassword: async (email: string, password: string) => {
+  loginWithEmailPassword: async (
+    email: string,
+    password: string
+  ): Promise<AuthToken> => {
     try {
-      const response = await axios.post(
+      const response = await axios.post<AuthToken>(
         `${API_GATEWAY_PREFIX}/${SUPABASE_AUTH_SERVICE_NAME}/auth/v1/token?grant_type=password`,
         { email, password },
         { headers: { 'Content-Type': 'application/json' } }
       );
       return response.data;
-    } catch (error: any) {
-      const errorData = error.response?.data;
-      if (errorData?.error_code === 'invalid_credentials') {
-        throw new Error('Sai thông tin đăng nhập hoặc chưa xác nhận mail');
+    } catch (error: unknown) {
+      const errorData = getAuthErrorData(error);
+      if (errorData.error_code === 'invalid_credentials') {
+        throw new Error('Sai thông tin đăng nhập hoặc chưa xác nhận mail', {
+          cause: error,
+        });
       }
-      console.error('Email login failed:', errorData || error.message);
+
+      console.error('Email login failed:', errorData || getErrorMessage(error));
       throw new Error(
-        errorData?.error_description || errorData?.msg || 'Đăng nhập thất bại'
+        errorData.error_description || errorData.msg || 'Đăng nhập thất bại',
+        { cause: error }
       );
     }
   },
@@ -59,41 +87,45 @@ export const authService = {
       const redirectUrl = encodeURIComponent(
         `${window.location.origin}/auth/callback`
       );
-      const response = await axios.post(
+      const response = await axios.post<unknown>(
         `${API_GATEWAY_PREFIX}/${SUPABASE_AUTH_SERVICE_NAME}/auth/v1/signup?redirect_to=${redirectUrl}`,
         { email, password },
         { headers: { 'Content-Type': 'application/json' } }
       );
       return response.data;
-    } catch (error: any) {
-      console.error('Signup failed:', error.response?.data || error.message);
-      throw new Error(error.response?.data?.msg || 'Đăng ký thất bại');
+    } catch (error: unknown) {
+      const errorData = getAuthErrorData(error);
+      console.error('Signup failed:', errorData || getErrorMessage(error));
+      throw new Error(errorData.msg || 'Đăng ký thất bại', { cause: error });
     }
   },
 
   recoverPassword: async (email: string) => {
     try {
       const redirectUrl = encodeURIComponent(
-        `${window.location.origin}/auth/callback`
+        `${window.location.origin}/auth/callback?type=recovery`
       );
-      const response = await axios.post(
+      const response = await axios.post<unknown>(
         `${API_GATEWAY_PREFIX}/${SUPABASE_AUTH_SERVICE_NAME}/auth/v1/recover?redirect_to=${redirectUrl}`,
         { email },
         { headers: { 'Content-Type': 'application/json' } }
       );
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorData = getAuthErrorData(error);
       console.error(
         'Password recovery failed:',
-        error.response?.data || error.message
+        errorData || getErrorMessage(error)
       );
-      throw new Error(error.response?.data?.msg || 'Password recovery failed');
+      throw new Error(errorData.msg || 'Password recovery failed', {
+        cause: error,
+      });
     }
   },
 
   updateUserPassword: async (accessToken: string, password: string) => {
     try {
-      const response = await axios.put(
+      const response = await axios.put<unknown>(
         `${API_GATEWAY_PREFIX}/${SUPABASE_AUTH_SERVICE_NAME}/auth/v1/user`,
         { password },
         {
@@ -104,30 +136,37 @@ export const authService = {
         }
       );
       return response.data;
-    } catch (error: any) {
-      const errorData = error.response?.data;
-      const customError = new Error(errorData?.msg || 'Update password failed');
-      if (errorData?.error_code) {
-        (customError as any).errorCode = errorData.error_code;
+    } catch (error: unknown) {
+      const errorData = getAuthErrorData(error);
+      const customError = new Error(errorData.msg || 'Update password failed', {
+        cause: error,
+      }) as ErrorWithCode;
+
+      if (errorData.error_code) {
+        customError.errorCode = errorData.error_code;
       }
+
       throw customError;
     }
   },
 
-  refreshAccessToken: async (currentRefreshToken: string) => {
+  refreshAccessToken: async (
+    currentRefreshToken: string
+  ): Promise<AuthToken> => {
     try {
-      const response = await axios.post(
+      const response = await axios.post<AuthToken>(
         `${API_GATEWAY_PREFIX}/${SUPABASE_AUTH_SERVICE_NAME}/auth/v1/token?grant_type=refresh_token`,
         { refresh_token: currentRefreshToken },
         { headers: { 'Content-Type': 'application/json' } }
       );
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorData = getAuthErrorData(error);
       console.error(
         'Token refresh failed:',
-        error.response?.data || error.message
+        errorData || getErrorMessage(error)
       );
-      throw new Error('Token refresh failed');
+      throw new Error('Token refresh failed', { cause: error });
     }
   },
 
@@ -138,8 +177,9 @@ export const authService = {
         {},
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
-    } catch (error: any) {
-      console.error('Logout failed:', error.response?.data || error.message);
+    } catch (error: unknown) {
+      const errorData = getAuthErrorData(error);
+      console.error('Logout failed:', errorData || getErrorMessage(error));
       // Still return true to allow local logout even if server call fails
     }
     return true;

@@ -24,14 +24,18 @@ type ApiError = {
 function getSafeNextPath() {
   const nextFromQuery = new URLSearchParams(window.location.search).get('next');
   const nextFromStorage = sessionStorage.getItem(AUTH_NEXT_STORAGE_KEY);
-  const nextPath = nextFromQuery || nextFromStorage || '/chat';
+  const nextFromLocalStorage = localStorage.getItem(AUTH_NEXT_STORAGE_KEY);
+  const nextPath =
+    nextFromQuery || nextFromStorage || nextFromLocalStorage || '/chat';
 
   if (!nextPath.startsWith('/') || nextPath.startsWith('//')) {
     sessionStorage.removeItem(AUTH_NEXT_STORAGE_KEY);
+    localStorage.removeItem(AUTH_NEXT_STORAGE_KEY);
     return '/chat';
   }
 
   sessionStorage.removeItem(AUTH_NEXT_STORAGE_KEY);
+  localStorage.removeItem(AUTH_NEXT_STORAGE_KEY);
   return nextPath;
 }
 

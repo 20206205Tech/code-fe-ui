@@ -7,9 +7,11 @@ import { getAALFromToken } from '@/lib/token-helper';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { authService, type AuthToken } from '../../services/auth-user.service';
+import { authService } from '../../services/auth-user.service';
 
 const PASSWORD_RECOVERY_TEST_EMAIL = 'test@20206205.tech';
+const RECOVERY_NEXT_PATH = '/auth/reset-password';
+const AUTH_NEXT_STORAGE_KEY = 'auth_next_path';
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Thao tác thất bại';
@@ -69,10 +71,7 @@ export default function LoginPage() {
     try {
       if (authMode === 'login') {
         if (!password) return;
-        const data = (await authService.loginWithEmailPassword(
-          email,
-          password
-        )) as AuthToken;
+        const data = await authService.loginWithEmailPassword(email, password);
 
         // Sau khi login pass thành công, check xem có cần MFA không
         const aal = getAALFromToken(data.access_token);
@@ -90,6 +89,7 @@ export default function LoginPage() {
         await authService.signUp(email, password);
         setAuthMode('verify-email');
       } else if (authMode === 'forgot-password') {
+        localStorage.setItem(AUTH_NEXT_STORAGE_KEY, RECOVERY_NEXT_PATH);
         await authService.recoverPassword(email);
         setAuthMode('verify-email');
       }

@@ -47,8 +47,13 @@ export function AuthCallbackContent() {
         );
 
         const type = hashParams.get('type') || searchParams.get('type');
-        if (type === 'recovery') {
+        const isRecovery =
+          type === 'recovery' ||
+          localStorage.getItem(AUTH_NEXT_STORAGE_KEY) === RECOVERY_NEXT_PATH;
+
+        if (isRecovery) {
           sessionStorage.setItem(AUTH_NEXT_STORAGE_KEY, RECOVERY_NEXT_PATH);
+          localStorage.setItem(AUTH_NEXT_STORAGE_KEY, RECOVERY_NEXT_PATH);
           router.push(
             `/auth/mfa?next=${encodeURIComponent(RECOVERY_NEXT_PATH)}`
           );
