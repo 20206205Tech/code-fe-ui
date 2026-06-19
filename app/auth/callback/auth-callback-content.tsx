@@ -4,6 +4,9 @@ import { useAuth } from '@/lib/auth-context';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
+const RECOVERY_NEXT_PATH = '/auth/reset-password';
+const AUTH_NEXT_STORAGE_KEY = 'auth_next_path';
+
 export function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -45,7 +48,10 @@ export function AuthCallbackContent() {
 
         const type = hashParams.get('type') || searchParams.get('type');
         if (type === 'recovery') {
-          router.push('/auth/mfa?next=/auth/reset-password');
+          sessionStorage.setItem(AUTH_NEXT_STORAGE_KEY, RECOVERY_NEXT_PATH);
+          router.push(
+            `/auth/mfa?next=${encodeURIComponent(RECOVERY_NEXT_PATH)}`
+          );
         } else {
           router.push('/auth/mfa');
         }

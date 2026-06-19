@@ -25,6 +25,16 @@ function parseAccessTokenFromCookie(cookieValue?: string) {
   }
 }
 
+function getSafeNextPath(request: NextRequest) {
+  const nextPath = request.nextUrl.searchParams.get('next');
+
+  if (!nextPath || !nextPath.startsWith('/') || nextPath.startsWith('//')) {
+    return '/chat';
+  }
+
+  return nextPath;
+}
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublicRoute =
@@ -51,7 +61,12 @@ export function proxy(request: NextRequest) {
   }
 
   if (hasAuth && aal !== 'aal2' && !isPublicRoute && pathname !== mfaRoute) {
-    return NextResponse.redirect(new URL(mfaRoute, request.url));
+    const redirectUrl = new URL(mfaRoute, request.url);
+    redirectUrl.searchParams.set(
+      'next',
+      `${pathname}${request.nextUrl.search}`
+    );
+    return NextResponse.redirect(redirectUrl);
   }
 
   if (hasAuth && pathname === '/login') {
@@ -61,7 +76,9 @@ export function proxy(request: NextRequest) {
   }
 
   if (hasAuth && aal === 'aal2' && pathname === mfaRoute) {
-    return NextResponse.redirect(new URL('/chat', request.url));
+    return NextResponse.redirect(
+      new URL(getSafeNextPath(request), request.url)
+    );
   }
 
   const isAdminRoute = adminRoutes.some((route) => pathname.startsWith(route));

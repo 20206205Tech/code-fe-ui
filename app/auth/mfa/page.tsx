@@ -7,8 +7,44 @@ import { authMfaService } from '@/services/auth-mfa.service';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { getAALFromToken } from '@/lib/token-helper';
-import { Loader2, Settings2, Smartphone } from 'lucide-react';
+import { Loader2, Smartphone } from 'lucide-react';
 import { getFriendlyDeviceName } from '@/lib/device-helper';
+
+const AUTH_NEXT_STORAGE_KEY = 'auth_next_path';
+const OTP_LENGTH = 6;
+
+type ApiError = {
+  response?: {
+    status?: number;
+    data?: unknown;
+  };
+  message?: string;
+};
+
+function getSafeNextPath() {
+  const nextFromQuery = new URLSearchParams(window.location.search).get('next');
+  const nextFromStorage = sessionStorage.getItem(AUTH_NEXT_STORAGE_KEY);
+  const nextPath = nextFromQuery || nextFromStorage || '/chat';
+
+  if (!nextPath.startsWith('/') || nextPath.startsWith('//')) {
+    sessionStorage.removeItem(AUTH_NEXT_STORAGE_KEY);
+    return '/chat';
+  }
+
+  sessionStorage.removeItem(AUTH_NEXT_STORAGE_KEY);
+  return nextPath;
+}
+
+function getApiError(error: unknown): ApiError {
+  return error && typeof error === 'object' ? error : {};
+}
+
+function getErrorCode(errorData: unknown) {
+  if (!errorData || typeof errorData !== 'object') return null;
+
+  const { error_code } = errorData as { error_code?: unknown };
+  return typeof error_code === 'string' ? error_code : null;
+}
 
 export default function MfaPage() {
   const router = useRouter();
@@ -31,8 +67,12 @@ export default function MfaPage() {
     secret?: string;
   } | null>(null);
   const [isRenaming, setIsRenaming] = useState(false);
-  const [mfaCode, setMfaCode] = useState<string[]>(Array(6).fill(''));
-  const mfaCodeRef = useRef<string[]>(Array(6).fill('')); // Ref để truy cập giá trị tức thời trong event handlers
+  const [mfaCode, setMfaCode] = useState<string[]>(
+    Array.from({ length: OTP_LENGTH }, () => '')
+  );
+  const mfaCodeRef = useRef<string[]>(
+    Array.from({ length: OTP_LENGTH }, () => '')
+  ); // Ref để truy cập giá trị tức thời trong event handlers
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isInitializing = useRef(false);
@@ -41,8 +81,6 @@ export default function MfaPage() {
   useEffect(() => {
     mfaCodeRef.current = mfaCode;
   }, [mfaCode]);
-
-  const OTP_LENGTH = 6;
 
   const handleSubmit = useCallback(
     async (e?: React.FormEvent) => {
@@ -66,10 +104,8 @@ export default function MfaPage() {
           verifyData.expires_in
         );
         toast.success('Xác thực MFA thành công');
-        const nextUrl =
-          new URLSearchParams(window.location.search).get('next') || '/chat';
-        router.push(nextUrl);
-      } catch (error: any) {
+        router.push(getSafeNextPath());
+      } catch {
         toast.error('Mã xác thực MFA không chính xác');
       } finally {
         setIsSubmitting(false);
@@ -150,7 +186,7 @@ export default function MfaPage() {
         e.key === 'Enter' &&
         mfaCodeRef.current.join('').length === OTP_LENGTH
       ) {
-        handleSubmit();
+        void handleSubmit();
       }
     },
     [handleSubmit]
@@ -199,7 +235,7 @@ export default function MfaPage() {
           prev ? { ...prev, friendlyName: newName } : null
         );
         toast.success('Đã cập nhật tên thiết bị');
-      } catch (error) {
+      } catch {
         toast.error('Không thể cập nhật tên thiết bị');
       } finally {
         setIsRenaming(false);
@@ -225,17 +261,14 @@ export default function MfaPage() {
           let factors;
           try {
             factors = await authMfaService.listFactors(tokens.access_token);
-          } catch (listErr) {
+          } catch {
             factors = { all: [], active: [] };
           }
 
           // Redirect to chat only if already aal2 AND has active factors
           const currentAAL = getAALFromToken(tokens.access_token);
           if (currentAAL === 'aal2' && factors.active.length > 0) {
-            const nextUrl =
-              new URLSearchParams(window.location.search).get('next') ||
-              '/chat';
-            router.push(nextUrl);
+            router.push(getSafeNextPath());
             return;
           }
 
@@ -280,10 +313,10 @@ export default function MfaPage() {
                 secret: enrollData.totp.secret,
               });
               setMfaMode('setup');
-            } catch (enrollErr: any) {
-              const errorData = enrollErr.response?.data;
+            } catch (enrollErr: unknown) {
+              const errorData = getApiError(enrollErr).response?.data;
               // Xử lý lỗi xung đột tên (mfa_factor_name_conflict)
-              if (errorData?.error_code === 'mfa_factor_name_conflict') {
+              if (getErrorCode(errorData) === 'mfa_factor_name_conflict') {
                 console.log(
                   'Conflict detected, attempting to clean up and retry...'
                 );
@@ -301,16 +334,17 @@ export default function MfaPage() {
               throw enrollErr;
             }
           }
-        } catch (err: any) {
+        } catch (err: unknown) {
+          const apiError = getApiError(err);
           console.error('MFA Init failed:', err);
-          if (err.response?.status === 404) {
+          if (apiError.response?.status === 404) {
             setError(
               'Dịch vụ xác thực 2 bước (MFA) chưa được kích hoạt trên hệ thống. Vui lòng liên hệ quản trị viên.'
             );
           } else {
             setError(
               'Có lỗi xảy ra khi khởi tạo xác thực 2 bước: ' +
-                (err.message || 'Lỗi không xác định')
+                (apiError.message || 'Lỗi không xác định')
             );
           }
           setMfaMode('verify'); // Chuyển khỏi mode loading để hiện lỗi
@@ -320,7 +354,7 @@ export default function MfaPage() {
       }
     };
 
-    initMfa();
+    void initMfa();
   }, [tokens, isAuthenticated, isAuthLoading, router]);
 
   // Chỗ này đã di chuyển handleSubmit lên trên
@@ -369,8 +403,8 @@ export default function MfaPage() {
                 {error}
               </p>
               <Button
-                onClick={async () => {
-                  await logout();
+                onClick={() => {
+                  void logout();
                 }}
                 className="px-10 h-14 bg-white/10 hover:bg-white/20 text-white rounded-2xl transition-all"
               >
@@ -447,7 +481,9 @@ export default function MfaPage() {
                       <input
                         type="text"
                         defaultValue={mfaData.friendlyName}
-                        onBlur={(e) => handleRename(e.target.value)}
+                        onBlur={(e) => {
+                          void handleRename(e.target.value);
+                        }}
                         placeholder="Ví dụ: Chrome trên Windows"
                         className="w-full bg-slate-900/50 border border-white/10 rounded-2xl h-14 px-5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all group-hover:border-white/20"
                       />
@@ -498,7 +534,9 @@ export default function MfaPage() {
 
                   <div className="space-y-4">
                     <Button
-                      onClick={handleSubmit}
+                      onClick={(e) => {
+                        void handleSubmit(e);
+                      }}
                       disabled={isSubmitting || mfaCode.join('').length !== 6}
                       className="w-full h-16 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold text-lg shadow-xl shadow-blue-600/20 transition-all disabled:opacity-50"
                     >
@@ -563,7 +601,9 @@ export default function MfaPage() {
                 </div>
 
                 <Button
-                  onClick={handleSubmit}
+                  onClick={(e) => {
+                    void handleSubmit(e);
+                  }}
                   disabled={isSubmitting || mfaCode.join('').length !== 6}
                   className="w-full h-16 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold text-lg shadow-xl shadow-blue-600/20 transition-all disabled:opacity-50"
                 >
@@ -578,8 +618,8 @@ export default function MfaPage() {
                 </Button>
 
                 <button
-                  onClick={async () => {
-                    await logout();
+                  onClick={() => {
+                    void logout();
                   }}
                   className="w-full text-slate-500 hover:text-slate-300 text-sm font-medium transition-colors pt-4"
                 >
