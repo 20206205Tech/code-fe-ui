@@ -3,11 +3,6 @@
 import { useAuth } from '@/lib/auth-context';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import {
-  decodeJwtPayload,
-  getUserRoleFromToken,
-  getAALFromToken,
-} from '@/lib/token-helper';
 
 export function AuthCallbackContent() {
   const router = useRouter();
@@ -42,8 +37,6 @@ export function AuthCallbackContent() {
           return;
         }
 
-        const aal = getAALFromToken(accessToken);
-
         await login(
           accessToken,
           refreshToken,
@@ -53,11 +46,8 @@ export function AuthCallbackContent() {
         const type = hashParams.get('type') || searchParams.get('type');
         if (type === 'recovery') {
           router.push('/auth/mfa?next=/auth/reset-password');
-        } else if (aal === 'aal1') {
-          // Redirect to MFA page
-          router.push('/auth/mfa');
         } else {
-          router.push('/chat');
+          router.push('/auth/mfa');
         }
       } catch (err) {
         console.error('Auth callback error:', err);
@@ -67,7 +57,7 @@ export function AuthCallbackContent() {
     };
 
     if (typeof window !== 'undefined') {
-      handleCallback();
+      void handleCallback();
     }
   }, [searchParams, login, router]);
 

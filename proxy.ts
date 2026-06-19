@@ -1,12 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TOKEN_STORAGE_KEY } from './config/app.config';
-import { getUserRoleFromToken } from './lib/token-helper';
+import { getAALFromToken, getUserRoleFromToken } from './lib/token-helper';
 
 const publicRoutes = ['/', '/login', '/auth/callback'];
-
-// Các route cần quyền admin. Chỉ cần khai báo tiền tố '/admin'
-// vì logic .startsWith() sẽ bao quát tất cả các trang con như /admin/data-pipeline.
 const adminRoutes = ['/admin'];
+const mfaRoute = '/auth/mfa';
+
+type AuthTokensCookie = {
+  access_token?: unknown;
+};
+
+function parseAccessTokenFromCookie(cookieValue?: string) {
+  if (!cookieValue) return null;
+
+  try {
+    const tokens = JSON.parse(
+      decodeURIComponent(cookieValue)
+    ) as AuthTokensCookie;
+
+    return typeof tokens.access_token === 'string' ? tokens.access_token : null;
+  } catch {
+    console.error('Invalid token format in cookie');
+    return null;
+  }
+}
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -14,34 +31,39 @@ export function proxy(request: NextRequest) {
     publicRoutes.includes(pathname) || pathname.startsWith('/share/');
 
   const authTokensCookie = request.cookies.get(TOKEN_STORAGE_KEY)?.value;
+  const accessToken = parseAccessTokenFromCookie(authTokensCookie);
   let hasAuth = false;
   let userRole = 'user';
+  let aal = 'aal1';
 
-  if (authTokensCookie) {
-    try {
-      const tokens = JSON.parse(decodeURIComponent(authTokensCookie));
-      if (tokens && tokens.access_token) {
-        hasAuth = true;
-        userRole = getUserRoleFromToken(tokens.access_token);
-      }
-    } catch (e) {
-      console.error('Invalid token format in cookie');
-    }
+  if (accessToken) {
+    hasAuth = true;
+    userRole = getUserRoleFromToken(accessToken);
+    aal = getAALFromToken(accessToken);
   }
 
-  // 1. Nếu chưa đăng nhập mà vào trang yêu cầu Auth -> Đẩy về login
-  if (!isPublicRoute && !hasAuth) {
+  if (pathname === mfaRoute && !hasAuth) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // 2. Nếu đã đăng nhập mà cố vào login -> Đẩy về chat
-  if (isPublicRoute && hasAuth) {
-    if (pathname === '/login') {
-      return NextResponse.redirect(new URL('/chat', request.url));
-    }
+  if (!isPublicRoute && pathname !== mfaRoute && !hasAuth) {
+    return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // 3. Phân quyền: Đã đăng nhập nhưng không phải admin mà cố vào trang admin -> Đẩy về chat
+  if (hasAuth && aal !== 'aal2' && !isPublicRoute && pathname !== mfaRoute) {
+    return NextResponse.redirect(new URL(mfaRoute, request.url));
+  }
+
+  if (hasAuth && pathname === '/login') {
+    return NextResponse.redirect(
+      new URL(aal === 'aal2' ? '/chat' : mfaRoute, request.url)
+    );
+  }
+
+  if (hasAuth && aal === 'aal2' && pathname === mfaRoute) {
+    return NextResponse.redirect(new URL('/chat', request.url));
+  }
+
   const isAdminRoute = adminRoutes.some((route) => pathname.startsWith(route));
   if (isAdminRoute && userRole !== 'admin') {
     return NextResponse.redirect(new URL('/chat', request.url));
