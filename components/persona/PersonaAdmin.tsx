@@ -8,8 +8,6 @@ import {
   Loader2,
   User,
   Upload,
-  Check,
-  X,
   Volume2,
   Square,
 } from 'lucide-react';
@@ -18,8 +16,6 @@ import { TablePagination } from '@/components/admin/TablePagination';
 import {
   Persona,
   CreatePersonaRequestDto,
-  UpdatePersonaRequestDto,
-  AdminAudioGenerateRequestDto,
   personaService,
   TTSEngine,
   TTSVoice,
@@ -40,7 +36,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -346,7 +341,7 @@ export default function PersonaAdmin() {
 
       <Dialog open={isOpeningDialog} onOpenChange={setIsOpeningDialog}>
         <DialogContent className="max-w-md">
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={(e) => void handleSubmit(e)}>
             <DialogHeader>
               <DialogTitle>
                 {editingPersona ? 'Chỉnh sửa nhân vật' : 'Tạo nhân vật mới'}
@@ -380,7 +375,7 @@ export default function PersonaAdmin() {
                     type="file"
                     className="hidden"
                     accept="image/*"
-                    onChange={handleFileUpload}
+                    onChange={(e) => void handleFileUpload(e)}
                     disabled={isUploading}
                   />
                 </div>
@@ -533,7 +528,7 @@ export default function PersonaAdmin() {
                       variant="outline"
                       size="sm"
                       className="flex-1 text-xs"
-                      onClick={handlePlayPreview}
+                      onClick={() => void handlePlayPreview()}
                       disabled={isPreviewLoading || !formData.greeting_text}
                     >
                       {isPreviewLoading ? (
@@ -675,7 +670,7 @@ export default function PersonaAdmin() {
                       variant="ghost"
                       size="icon"
                       className="text-destructive"
-                      onClick={() => handleDeletePersona(persona.id)}
+                      onClick={() => void handleDeletePersona(persona.id)}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -693,7 +688,7 @@ export default function PersonaAdmin() {
         pageSize={pageSize}
         totalItems={totalItems}
         totalPages={totalPages}
-        onPageChange={fetchPersonas}
+        onPageChange={(page) => void fetchPersonas(page)}
         itemName="nhân vật"
       />
     </div>
